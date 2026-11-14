@@ -44,8 +44,8 @@ APPS_DIR=${APPS_DIR:-/addon_configs/$ADDON_SLUG/apps}
 version=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 tag=${1:-v$version}
 
-# GitHub tarball location, so the HAOS box does not need git
-package="ha-automations @ $REPO_URL/archive/refs/tags/$tag.tar.gz"
+# GitHub tarball location, so the HAOS box does not need git.
+package="ha-automations@$REPO_URL/archive/refs/tags/$tag.tar.gz"
 
 # --- Helpers ---
 
