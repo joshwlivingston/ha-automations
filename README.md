@@ -13,9 +13,13 @@ To run against the real HA from your Mac, run `appdaemon` locally with a long-li
 ## Layout: public code, private config
 
 This repo holds generic code only. Your entity IDs live in a separate **private
-config repo** with your `apps.yaml` and a small workflow. That workflow calls
-`.github/workflows/deploy.yml` here, pinned to a release tag. Start from
-[`template/config-repo/`](template/config-repo/).
+config repo** that contains `apps.yaml` and a workflow. On a schedule, the workflow
+resolves the latest `v*` tag of `PACKAGE_REPO`, checks out that tag, and runs
+`scripts/deploy.sh` with `APPS_YAML` pointing at its own `apps.yaml`.
+
+`PACKAGE_REPO` defaults to `<config repo owner>/ha-automations`. A fork under the
+same name needs no edits, only the `HA_SSH` variable. Scheduled runs set
+`ONLY_IF_CHANGED=1`, so they exit after one SSH call when the box is current.
 
 ## Release
 
