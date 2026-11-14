@@ -590,7 +590,7 @@ wheels = [
 
 [[package]]
 name = "ha-automations"
-version = "0.1.1"
+version = "0.2.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
@@ -607,7 +607,7 @@ dev = [
 dev = [
     { name = "appdaemon", specifier = ">=4.5.16" },
     { name = "pyright", specifier = ">=1.1.414" },
-    { name = "pytest", specifier = ">=9.2" },
+    { name = "pytest", specifier = ">=9.2.0" },
     { name = "ruff", specifier = ">=0.17.5" },
 ]
 
