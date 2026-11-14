@@ -1,14 +1,27 @@
-"""Turn the lamp on dim before dawn and brighten it as the sun rises.
+"""Turn a light on dim before dawn and brighten it as the sun rises.
 
-At ON_TIME, if the sun is below DARK_ELEVATION, the lamp turns on at
-MIN_BRIGHTNESS and ramps to MAX_BRIGHTNESS by FULL_ELEVATION. It turns off at
-OFF_ELEVATION. If it is already light at ON_TIME, nothing happens. The ramp
-never lowers brightness, so manual changes upward stick.
+Usage
+-----
+bedroom_sunrise:
+    module: sunrise_fade
+    class: SunriseFade
+    light: light.bedroom_lamp
 
-Args: `light` (required). Constants below can be overridden with lowercase
-args, e.g. `max_brightness: 80`, `on_time: "06:00:00"`.
+Settings
+--------
+setting          default     meaning
+light                        light entity to control
+on_time          05:45:00    when to check if it is dark
+dark_elevation   -6          sun elevation (degrees) below which it is dark
+full_elevation   0           elevation where max_brightness is reached
+off_elevation    4           elevation where the light turns off
+min_brightness   5           starting brightness, percent
+max_brightness   50          brightness at full_elevation, percent
+off_transition   300         fade-out length, seconds
 
-Fire the `lamp_sunrise_on` event to trigger manually.
+Testing
+-------
+Settings > Tools > Events, Event type `lamp_sunrise_on` > Fire event
 """
 import appdaemon.plugins.hass.hassapi as hass
 

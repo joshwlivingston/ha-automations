@@ -1,12 +1,24 @@
-"""Brighten the lamp as the sun sets.
+"""Brighten a light as the sun sets.
 
-Ramps from MIN_BRIGHTNESS to MAX_BRIGHTNESS as sun elevation drops from
-START_ELEVATION to END_ELEVATION. Never lowers brightness.
+Usage
+-----
+living_room_sunset:
+    module: sunset_fade
+    class: SunsetFade
+    light: light.living_room_lamp
 
-Args: `light` (required). Constants below can be overridden with lowercase
-args, e.g. `max_brightness: 80`.
+Settings
+--------
+setting          default     meaning
+light                        light entity to control
+start_elevation  6           sun elevation (degrees) where brightening starts
+end_elevation    -6          elevation where max_brightness is reached
+min_brightness   5           starting brightness, percent
+max_brightness   50          brightness at end_elevation, percent
 
-Fire the `lamp_sunset_fade_in` event to trigger manually.
+Testing
+-------
+Settings > Tools > Events, Event type `lamp_sunset_fade_in` > Fire event
 """
 import appdaemon.plugins.hass.hassapi as hass
 
