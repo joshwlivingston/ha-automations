@@ -4,7 +4,9 @@ Ramps the lamp from MIN to MAX brightness as the sun drops from
 START_ELEVATION (pre-dusk, ~30 min before sunset) to END_ELEVATION
 (civil dusk). Ease-in curve; never dims.
 
-Configure the light entity with the `light` arg in apps.yaml.
+Configure the light entity with the `light` arg in apps.yaml. Any of the
+constants below can be overridden with a lowercase arg of the same name
+(e.g. `max_brightness: 80`).
 
 Manual trigger: fire the `lamp_sunset_fade_in` event (Developer Tools → Events).
 """
@@ -23,9 +25,14 @@ MAX_BRIGHTNESS = 50
 class SunsetFade(hass.Hass):
     def initialize(self):
         self.lamp = self.args["light"]
+        a = self.args
+        self.start_elevation = a.get("start_elevation", START_ELEVATION)
+        self.end_elevation = a.get("end_elevation", END_ELEVATION)
+        self.min_brightness = a.get("min_brightness", MIN_BRIGHTNESS)
+        self.max_brightness = a.get("max_brightness", MAX_BRIGHTNESS)
         self.listen_state(self._on_elevation, "sun.sun", attribute="elevation")
         self.listen_event(self._on_event, "lamp_sunset_fade_in")
-        self.log(f"sunset_fade loaded – {self.lamp}, {START_ELEVATION}° → {END_ELEVATION}°")
+        self.log(f"sunset_fade loaded – {self.lamp}, {self.start_elevation}° → {self.end_elevation}°")
 
     def _on_elevation(self, entity, attribute, old, new, **kwargs):
         self.lamp_sunset_fade_in()
@@ -38,9 +45,9 @@ class SunsetFade(hass.Hass):
         elevation, rising = sun_state(self)
         if elevation is None or rising:
             return None
-        if not END_ELEVATION - 1 <= elevation <= START_ELEVATION:
+        if not self.end_elevation - 1 <= elevation <= self.start_elevation:
             return None
-        return progress(elevation, START_ELEVATION, END_ELEVATION)
+        return progress(elevation, self.start_elevation, self.end_elevation)
 
     def lamp_sunset_fade_in(self):
         """Fade the lamp toward the current sunset target (no-op outside the window)."""
@@ -48,5 +55,5 @@ class SunsetFade(hass.Hass):
         if p is None:
             self.log("sunset_fade: outside fade window, nothing to do", level="DEBUG")
             return
-        target = round(lerp(MIN_BRIGHTNESS, MAX_BRIGHTNESS, ease_in(p)))
+        target = round(lerp(self.min_brightness, self.max_brightness, ease_in(p)))
         brighten_only(self, self.lamp, target)

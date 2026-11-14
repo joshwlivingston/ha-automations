@@ -6,7 +6,9 @@ MAX_BRIGHTNESS at FULL_ELEVATION, then fades off at OFF_ELEVATION once
 daylight takes over. If it's already light at 05:45 (summer), nothing happens.
 Never dims during the ramp, so manual brightening is respected.
 
-Configure the light entity with the `light` arg in apps.yaml.
+Configure the light entity with the `light` arg in apps.yaml. Any of the
+constants below can be overridden with a lowercase arg of the same name
+(e.g. `max_brightness: 80`, `on_time: "06:00:00"`).
 
 Manual trigger: fire the `lamp_sunrise_on` event (Developer Tools → Events).
 """
@@ -28,12 +30,20 @@ ON_TIME = "05:45:00"
 class SunriseFade(hass.Hass):
     def initialize(self):
         self.lamp = self.args["light"]
-        # Elevation at ON_TIME when we switched the lamp on; None = not running this morning.
+        a = self.args
+        self.dark_elevation = a.get("dark_elevation", DARK_ELEVATION)
+        self.full_elevation = a.get("full_elevation", FULL_ELEVATION)
+        self.off_elevation = a.get("off_elevation", OFF_ELEVATION)
+        self.min_brightness = a.get("min_brightness", MIN_BRIGHTNESS)
+        self.max_brightness = a.get("max_brightness", MAX_BRIGHTNESS)
+        self.off_transition = a.get("off_transition", OFF_TRANSITION)
+        self.on_time = str(a.get("on_time", ON_TIME))
+        # Elevation at self.on_time when we switched the lamp on; None = not running this morning.
         self._start_elevation = None
-        self.run_daily(self._on_time, ON_TIME)
+        self.run_daily(self._on_time, self.on_time)
         self.listen_state(self._on_elevation, "sun.sun", attribute="elevation")
         self.listen_event(self._on_event, "lamp_sunrise_on")
-        self.log(f"sunrise_fade loaded – {self.lamp}, on at {ON_TIME} if < {DARK_ELEVATION}°, off at {OFF_ELEVATION}°")
+        self.log(f"sunrise_fade loaded – {self.lamp}, on at {self.on_time} if < {self.dark_elevation}°, off at {self.off_elevation}°")
 
     def _on_time(self, **kwargs):
         self.lamp_sunrise_on()
@@ -47,12 +57,12 @@ class SunriseFade(hass.Hass):
     def lamp_sunrise_on(self):
         """Switch the lamp on dimly if it's still dark."""
         elevation, rising = sun_state(self)
-        if elevation is None or not rising or elevation >= DARK_ELEVATION:
+        if elevation is None or not rising or elevation >= self.dark_elevation:
             self.log(f"sunrise_fade: already light enough ({elevation}°), skipping")
             self._start_elevation = None
             return
         self._start_elevation = elevation
-        brighten_only(self, self.lamp, MIN_BRIGHTNESS, transition=5)
+        brighten_only(self, self.lamp, self.min_brightness, transition=5)
 
     def lamp_sunrise_ramp(self):
         """Brighten with the rising sun, then turn off once it's daylight."""
@@ -61,9 +71,9 @@ class SunriseFade(hass.Hass):
         elevation, rising = sun_state(self)
         if elevation is None:
             return
-        if elevation >= OFF_ELEVATION or not rising:
+        if elevation >= self.off_elevation or not rising:
             self._start_elevation = None
-            self.call_service("light/turn_off", entity_id=self.lamp, transition=OFF_TRANSITION)
+            self.call_service("light/turn_off", entity_id=self.lamp, transition=self.off_transition)
             return
-        p = progress(elevation, self._start_elevation, FULL_ELEVATION)
-        brighten_only(self, self.lamp, round(lerp(MIN_BRIGHTNESS, MAX_BRIGHTNESS, ease_in(p))))
+        p = progress(elevation, self._start_elevation, self.full_elevation)
+        brighten_only(self, self.lamp, round(lerp(self.min_brightness, self.max_brightness, ease_in(p))))
