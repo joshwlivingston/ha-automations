@@ -1,0 +1,26 @@
+name: Deploy
+on:
+  schedule:
+    # Pick up new ha-automations tags (no-op if the box already runs the latest).
+    # GitHub cron runs in UTC. Hours below are US Mountain Standard Time (UTC-7);
+    # during daylight time (MDT) everything runs one hour later locally.
+    - cron: "2-59/15 13-23,0-3 * * *"  # 06:02-20:47 MST every 15 min
+    - cron: "2 4-12 * * *"             # 21:02-05:02 MST hourly
+  push:
+    branches: [main]          # config change → redeploy latest tag
+  workflow_dispatch:
+    inputs:
+      version:
+        description: tag to deploy (empty = latest; use an old tag to roll back)
+        required: false
+
+jobs:
+  deploy:
+    uses: OWNER/ha-automations/.github/workflows/deploy.yml@main
+    with:
+      version: ${{ inputs.version || '' }}
+      only_if_changed: ${{ github.event_name == 'schedule' }}
+      package_repo: OWNER/ha-automations
+      ha_ssh: ${{ vars.HA_SSH }}
+      ha_ssh_port: ${{ vars.HA_SSH_PORT || '22' }}
+      runs_on: '["self-hosted", "homelab"]'

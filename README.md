@@ -10,26 +10,38 @@ and the AppDaemon add-on on HAOS pip-installs them. Nobody edits code on the box
 
 To run against the real HA from your Mac, run `appdaemon` locally with a long-lived token.
 
-## Release + deploy
+## Layout: public code, private config
+
+This repo holds generic code only. Your entity IDs live in a separate **private
+config repo** with your `apps.yaml` and a small workflow. That workflow calls
+`.github/workflows/deploy.yml` here, pinned to a release tag. Start from
+[`template/config-repo/`](template/config-repo/).
+
+## Release
 
     # bump version in pyproject.toml, commit, then:
     git tag vX.Y.Z && git push && git push --tags
 
-CI runs the checks, then the `deploy` job runs `scripts/deploy.sh` on a self-hosted
-runner on the LAN. You can also run `scripts/deploy.sh [tag]` by hand from the Mac.
+CI here only runs checks. Your config repo checks for new tags every 15 minutes
+and deploys the latest one. It also redeploys when you push config changes. No
+tokens connect the two repos.
 
-`deploy.sh` syncs `deploy/appdaemon/apps/` (shims + `apps.yaml`) to the add-on,
-sets `python_packages` to the tag's tarball (other options preserved), and restarts
-AppDaemon. Rollback: `scripts/deploy.sh v0.1.0`.
+## Deploy
+
+`scripts/deploy.sh [tag]` syncs the shims in `deploy/appdaemon/apps/` and your
+`apps.yaml` to the add-on. It then sets `python_packages` to the tag's tarball
+(other options preserved) and restarts AppDaemon.
+
+To run it by hand from your machine, create `.deploy.env` (gitignored):
+
+    HA_SSH=root@homeassistant.local
+    REPO_URL=https://github.com/<you>/ha-automations
+    APPS_YAML=../ha-automations-config/apps.yaml
 
 ## One-time box setup
 
 1. Install the **AppDaemon** and **Advanced SSH & Web Terminal** add-ons.
 2. In the SSH add-on config, add your public key and set `sftp: true` (needed for rsync).
-3. Create `.deploy.env` (gitignored):
-
-       HA_SSH=root@homeassistant.local
-       REPO_URL=https://github.com/<you>/ha-automations
 
 ## Self-hosted runner (Proxmox LXC)
 
@@ -42,12 +54,9 @@ AppDaemon. Rollback: `scripts/deploy.sh v0.1.0`.
        ssh-keyscan -p 22 <ha-ip> >> ~/.ssh/known_hosts
 
    Add `~/.ssh/id_ed25519.pub` to the SSH add-on's `authorized_keys`.
-3. Repo → Settings → Actions → Runners → **New self-hosted runner** (Linux x64).
+3. **Config repo** → Settings → Actions → Runners → **New self-hosted runner** (Linux x64).
    Follow the download/config steps as `runner`, adding `--labels homelab` to
    `./config.sh`. Then, as root: `cd /home/runner/actions-runner && ./svc.sh install runner && ./svc.sh start`.
-4. Repo → Settings → Environments → create `haos`. Set **Deployment branches and
-   tags** to the tag pattern `v*`. Add the variable `HA_SSH=root@<ha-ip>`.
-5. If the repo is public: Settings → Actions → General → set fork pull request
-   workflows to require approval for all outside collaborators.
-
-The SSH key stays on the runner. It is not stored in GitHub secrets.
+4. **Config repo** → Settings → Environments → create `haos`. Set **Deployment branches** to `main`. Add the variable `HA_SSH=root@<ha-ip>`.
+The SSH key stays on the runner. The runner is registered only on your private config repo,
+so the public repo never runs jobs on your LAN. The key is not stored in GitHub secrets.
