@@ -2,9 +2,9 @@
 
 Usage
 -----
-living_room_sunset:
-    module: sunset_fade
-    class: SunsetFade
+living_room_falling_light:
+    module: falling_light_fade
+    class: FallingLightFade
     light: light.living_room_lamp
 
 Settings
@@ -21,7 +21,7 @@ Levels are in the detector's units. Defaults are sun elevation in degrees.
 
 Testing
 -------
-Settings > Tools > Events, Event type `lamp_sunset_fade_in` > Fire event
+Settings > Tools > Events, Event type `lamp_falling_light_fade_in` > Fire event
 """
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -36,7 +36,7 @@ MIN_BRIGHTNESS = 5     # lowest level the bulb visibly glows at
 MAX_BRIGHTNESS = 50
 
 
-class SunsetFade(hass.Hass):
+class FallingLightFade(hass.Hass):
     def initialize(self):
         self.lamp = self.args["light"]
         a = self.args
@@ -45,12 +45,12 @@ class SunsetFade(hass.Hass):
         self.end_level = a.get("end_level", END_LEVEL)
         self.min_brightness = a.get("min_brightness", MIN_BRIGHTNESS)
         self.max_brightness = a.get("max_brightness", MAX_BRIGHTNESS)
-        self.detector.listen(self.lamp_sunset_fade_in)
-        self.listen_event(self._on_event, "lamp_sunset_fade_in")
-        self.log(f"sunset_fade loaded: {self.lamp}, {self.start_level} to {self.end_level}")
+        self.detector.listen(self.lamp_falling_light_fade_in)
+        self.listen_event(self._on_event, "lamp_falling_light_fade_in")
+        self.log(f"falling_light_fade loaded: {self.lamp}, {self.start_level} to {self.end_level}")
 
     def _on_event(self, event_type, data, **kwargs):
-        self.lamp_sunset_fade_in()
+        self.lamp_falling_light_fade_in()
 
     def evening_fade_progress(self):
         """Ramp progress 0.0-1.0 while the level is in range, else None."""
@@ -61,11 +61,11 @@ class SunsetFade(hass.Hass):
             return None
         return progress(level, self.start_level, self.end_level)
 
-    def lamp_sunset_fade_in(self):
-        """Fade the lamp toward the current sunset target (no-op outside the window)."""
+    def lamp_falling_light_fade_in(self):
+        """Fade the lamp toward the current target (no-op outside the window)."""
         p = self.evening_fade_progress()
         if p is None:
-            self.log("sunset_fade: outside fade window, nothing to do", level="DEBUG")
+            self.log("falling_light_fade: outside fade window, nothing to do", level="DEBUG")
             return
         target = round(lerp(self.min_brightness, self.max_brightness, ease_in(p)))
         brighten_only(self, self.lamp, target)

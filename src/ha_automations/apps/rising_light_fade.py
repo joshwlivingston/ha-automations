@@ -2,9 +2,9 @@
 
 Usage
 -----
-bedroom_sunrise:
-    module: sunrise_fade
-    class: SunriseFade
+bedroom_rising_light:
+    module: rising_light_fade
+    class: RisingLightFade
     light: light.bedroom_lamp
 
 Settings
@@ -24,7 +24,7 @@ Levels are in the detector's units. Defaults are sun elevation in degrees.
 
 Testing
 -------
-Settings > Tools > Events, Event type `lamp_sunrise_on` > Fire event
+Settings > Tools > Events, Event type `lamp_rising_light_on` > Fire event
 """
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -41,7 +41,7 @@ OFF_TRANSITION = 300   # seconds, fade-out duration
 ON_TIME = "05:45:00"
 
 
-class SunriseFade(hass.Hass):
+class RisingLightFade(hass.Hass):
     def initialize(self):
         self.lamp = self.args["light"]
         a = self.args
@@ -56,27 +56,27 @@ class SunriseFade(hass.Hass):
         # Level at self.on_time when we switched the lamp on; None = not running this morning.
         self._start_level = None
         self.run_daily(self._on_time, self.on_time)
-        self.detector.listen(self.lamp_sunrise_ramp)
-        self.listen_event(self._on_event, "lamp_sunrise_on")
-        self.log(f"sunrise_fade loaded: {self.lamp}, on at {self.on_time} if < {self.dark_level}, off at {self.off_level}")
+        self.detector.listen(self.lamp_rising_light_ramp)
+        self.listen_event(self._on_event, "lamp_rising_light_on")
+        self.log(f"rising_light_fade loaded: {self.lamp}, on at {self.on_time} if < {self.dark_level}, off at {self.off_level}")
 
     def _on_time(self, **kwargs):
-        self.lamp_sunrise_on()
+        self.lamp_rising_light_on()
 
     def _on_event(self, event_type, data, **kwargs):
-        self.lamp_sunrise_on()
+        self.lamp_rising_light_on()
 
-    def lamp_sunrise_on(self):
+    def lamp_rising_light_on(self):
         """Switch the lamp on dimly if it's still dark."""
         level, rising = self.detector.read()
         if level is None or rising is False or level >= self.dark_level:
-            self.log(f"sunrise_fade: already light enough ({level}), skipping")
+            self.log(f"rising_light_fade: already light enough ({level}), skipping")
             self._start_level = None
             return
         self._start_level = level
         brighten_only(self, self.lamp, self.min_brightness, transition=5)
 
-    def lamp_sunrise_ramp(self):
+    def lamp_rising_light_ramp(self):
         """Brighten as the level rises, then turn off once it's daylight."""
         if self._start_level is None:
             return
