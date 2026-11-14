@@ -1,67 +1,47 @@
 # ha-automations
 
-AppDaemon automations, developed and tested off-box. Releases go out as git tags,
-and the AppDaemon add-on on HAOS pip-installs them. Nobody edits code on the box.
+Home Assistant automations written in Python and run by the AppDaemon add-on. Changes are tested in CI and deployed to Home Assistant OS from a tagged release.
 
-## Develop
+## You need your own config repo
 
-    uv sync
-    uv run pytest && uv run ruff check . && uv run pyright
+This repo holds the code only. Your settings (which lights, what times, your Home Assistant address) go in a separate private repo that you own.
 
-To run against the real HA from your Mac, run `appdaemon` locally with a long-lived token.
+Start from the template: **[ha-automations-config-template](#)** *(coming soon)*.
 
-## Layout: public code, private config
+## Quickstart
 
-This repo holds generic code only. Your entity IDs live in a separate **private
-config repo** that contains `apps.yaml` and a workflow. On a schedule, the workflow
-resolves the latest `v*` tag of `PACKAGE_REPO`, checks out that tag, and runs
-`scripts/deploy.sh` with `APPS_YAML` pointing at its own `apps.yaml`.
+You need:
 
-`PACKAGE_REPO` defaults to `<config repo owner>/ha-automations`. A fork under the
-same name needs no edits, only the `HA_SSH` variable. `deploy.sh` exits after one
-SSH call if the box already runs that tag with the same `apps.yaml`; `FORCE=1`
-redeploys anyway.
+- Home Assistant OS
+- The [**AppDaemon**](https://community.home-assistant.io/t/home-assistant-community-add-on-appdaemon-4/163259) add-on
+- The [**Advanced SSH & Web Terminal**](https://community.home-assistant.io/t/home-assistant-community-add-on-ssh-web-terminal/33820) add-on, set up with an SSH key
 
-## Release
+Steps:
 
-    # bump version in pyproject.toml, commit, then:
-    git tag vX.Y.Z && git push && git push --tags
+1. Create your config repo from the template above.
+2. In your config repo, edit `apps.yaml` to point at your lights. Example:
 
-CI here only runs checks. Your config repo checks for new tags every 15 minutes
-and deploys the latest one. It also redeploys when you push config changes. No
-tokens connect the two repos.
+   ```yaml
+   bedroom_sunrise:
+     module: sunrise_fade
+     class: SunriseFade
+     light: light.bedroom_lamp
+   ```
 
-## Deploy
+3. Fill in your Home Assistant SSH address in the config repo's settings.
+4. Deploy using the steps in the config repo.
+5. Check the AppDaemon add-on log in Home Assistant to confirm the apps started.
 
-`scripts/deploy.sh [tag]` syncs the shims in `deploy/appdaemon/apps/` and your
-`apps.yaml` to the add-on. It then sets `python_packages` to the tag's tarball
-(other options preserved) and restarts AppDaemon.
+Each app's settings are listed at the top of its file in `src/ha_automations/apps/`.
 
-To run it by hand from your machine, create `.deploy.env` (gitignored):
+## Fork it
 
-    HA_SSH=root@homeassistant.local
-    REPO_URL=https://github.com/<you>/ha-automations
-    APPS_YAML=../ha-automations-config/apps.yaml
+Fork this repo if you want to add or change automations. Point your config repo at your fork instead of this one.
 
-## One-time box setup
+## Issues and pull requests
 
-1. Install the **AppDaemon** and **Advanced SSH & Web Terminal** add-ons.
-2. In the SSH add-on config, add your public key and set `sftp: true` (needed for rsync).
+Bug reports, ideas, and pull requests are welcome. Before opening a PR, run:
 
-## Self-hosted runner (Proxmox LXC)
-
-1. Create an unprivileged Debian 12 LXC with 1 core, 512 MB RAM, and 4 GB disk.
-2. Inside it:
-
-       apt update && apt install -y git rsync python3 openssh-client curl
-       useradd -m runner && su - runner
-       ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519
-       ssh-keyscan -p 22 <ha-ip> >> ~/.ssh/known_hosts
-
-   Add `~/.ssh/id_ed25519.pub` to the SSH add-on's `authorized_keys`.
-3. **Config repo** → Settings → Actions → Runners → **New self-hosted runner** (Linux x64).
-   Follow the download/config steps as `runner`, adding `--labels homelab` to
-   `./config.sh`. Then, as root: `cd /home/runner/actions-runner && ./svc.sh install runner && ./svc.sh start`.
-4. **Config repo** → Settings → Environments → create `haos`. Set **Deployment branches** to `main`. Add the variable `HA_SSH=root@<ha-ip>`.
-The SSH key stays on the runner. The runner is registered only on your private config repo,
-so the public repo never runs jobs on your LAN. The key is not stored in GitHub secrets.
+```sh
+uv run pytest && uv run ruff check . && uv run pyright
+```
