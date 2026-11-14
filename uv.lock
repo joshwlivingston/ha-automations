@@ -605,10 +605,10 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "appdaemon", specifier = ">=4.5" },
-    { name = "pyright", specifier = ">=1.1.380" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.6" },
+    { name = "appdaemon", specifier = ">=4.5.16" },
+    { name = "pyright", specifier = ">=1.1.414" },
+    { name = "pytest", specifier = ">=9.2" },
+    { name = "ruff", specifier = ">=0.17.5" },
 ]
 
 [[package]]
