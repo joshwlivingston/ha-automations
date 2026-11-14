@@ -1,0 +1,7 @@
+sunrise_fade:
+  module: sunrise_fade
+  class: SunriseFade
+
+sunset_fade:
+  module: sunset_fade
+  class: SunsetFade
