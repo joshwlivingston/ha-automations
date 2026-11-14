@@ -1,14 +1,12 @@
-"""Lamp – gentle fade-in at sunset.
+"""Brighten the lamp as the sun sets.
 
-Ramps the lamp from MIN to MAX brightness as the sun drops from
-START_ELEVATION (pre-dusk, ~30 min before sunset) to END_ELEVATION
-(civil dusk). Ease-in curve; never dims.
+Ramps from MIN_BRIGHTNESS to MAX_BRIGHTNESS as sun elevation drops from
+START_ELEVATION to END_ELEVATION. Never lowers brightness.
 
-Configure the light entity with the `light` arg in apps.yaml. Any of the
-constants below can be overridden with a lowercase arg of the same name
-(e.g. `max_brightness: 80`).
+Args: `light` (required). Constants below can be overridden with lowercase
+args, e.g. `max_brightness: 80`.
 
-Manual trigger: fire the `lamp_sunset_fade_in` event (Developer Tools → Events).
+Fire the `lamp_sunset_fade_in` event to trigger manually.
 """
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -16,8 +14,8 @@ from ha_automations.curves import ease_in, lerp, progress
 from ha_automations.lights import brighten_only
 from ha_automations.solar import sun_state
 
-START_ELEVATION = 6    # degrees – fade begins
-END_ELEVATION = -6     # degrees – full target reached
+START_ELEVATION = 6    # degrees, ramp starts
+END_ELEVATION = -6     # degrees, ramp ends at MAX_BRIGHTNESS
 MIN_BRIGHTNESS = 5     # lowest level the bulb visibly glows at
 MAX_BRIGHTNESS = 50
 
@@ -32,7 +30,7 @@ class SunsetFade(hass.Hass):
         self.max_brightness = a.get("max_brightness", MAX_BRIGHTNESS)
         self.listen_state(self._on_elevation, "sun.sun", attribute="elevation")
         self.listen_event(self._on_event, "lamp_sunset_fade_in")
-        self.log(f"sunset_fade loaded – {self.lamp}, {self.start_elevation}° → {self.end_elevation}°")
+        self.log(f"sunset_fade loaded: {self.lamp}, {self.start_elevation}° → {self.end_elevation}°")
 
     def _on_elevation(self, entity, attribute, old, new, **kwargs):
         self.lamp_sunset_fade_in()
@@ -41,7 +39,7 @@ class SunsetFade(hass.Hass):
         self.lamp_sunset_fade_in()
 
     def evening_fade_progress(self):
-        """0.0 → 1.0 while the sun is setting through the window, else None."""
+        """Ramp progress 0.0-1.0 while elevation is in range, else None."""
         elevation, rising = sun_state(self)
         if elevation is None or rising:
             return None

@@ -1,4 +1,4 @@
-"""Pure math helpers – no Home Assistant dependencies, unit-testable."""
+"""Easing and interpolation math. No Home Assistant imports."""
 
 
 def clamp(x, lo=0.0, hi=1.0):

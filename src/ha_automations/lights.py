@@ -1,4 +1,4 @@
-"""Reusable light actions (take the calling AppDaemon app as first argument)."""
+"""Light helpers. Each takes the calling AppDaemon app as its first argument."""
 
 
 def brightness_pct(app, entity_id):
@@ -9,7 +9,7 @@ def brightness_pct(app, entity_id):
 
 
 def brighten_only(app, entity_id, pct, transition=60):
-    """Raise a light to `pct`, never lower it – respects manual adjustments."""
+    """Raise a light to `pct`, never lower it, so manual increases stick."""
     if pct > brightness_pct(app, entity_id):
         app.call_service(
             "light/turn_on", entity_id=entity_id, brightness_pct=pct, transition=transition

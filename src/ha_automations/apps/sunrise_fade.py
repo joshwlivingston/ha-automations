@@ -1,16 +1,14 @@
-"""Lamp – dim-on at 5:45 when it's dark, brighten with the dawn.
+"""Turn the lamp on dim before dawn and brighten it as the sun rises.
 
-At 05:45, if the sun is still below DARK_ELEVATION (pitch black), the lamp
-comes on at MIN_BRIGHTNESS. As the sun rises it ramps (ease-in) to
-MAX_BRIGHTNESS at FULL_ELEVATION, then fades off at OFF_ELEVATION once
-daylight takes over. If it's already light at 05:45 (summer), nothing happens.
-Never dims during the ramp, so manual brightening is respected.
+At ON_TIME, if the sun is below DARK_ELEVATION, the lamp turns on at
+MIN_BRIGHTNESS and ramps to MAX_BRIGHTNESS by FULL_ELEVATION. It turns off at
+OFF_ELEVATION. If it is already light at ON_TIME, nothing happens. The ramp
+never lowers brightness, so manual changes upward stick.
 
-Configure the light entity with the `light` arg in apps.yaml. Any of the
-constants below can be overridden with a lowercase arg of the same name
-(e.g. `max_brightness: 80`, `on_time: "06:00:00"`).
+Args: `light` (required). Constants below can be overridden with lowercase
+args, e.g. `max_brightness: 80`, `on_time: "06:00:00"`.
 
-Manual trigger: fire the `lamp_sunrise_on` event (Developer Tools → Events).
+Fire the `lamp_sunrise_on` event to trigger manually.
 """
 import appdaemon.plugins.hass.hassapi as hass
 
@@ -18,12 +16,12 @@ from ha_automations.curves import ease_in, lerp, progress
 from ha_automations.lights import brighten_only
 from ha_automations.solar import sun_state
 
-DARK_ELEVATION = -6    # degrees – below civil dawn counts as "pitch black"
-FULL_ELEVATION = 0     # degrees – MAX reached at sunrise
-OFF_ELEVATION = 4      # degrees – daylight, lamp no longer needed
+DARK_ELEVATION = -6    # degrees, below this counts as dark (civil dawn)
+FULL_ELEVATION = 0     # degrees, MAX_BRIGHTNESS reached (sunrise)
+OFF_ELEVATION = 4      # degrees, lamp turns off
 MIN_BRIGHTNESS = 5     # lowest level the bulb visibly glows at
 MAX_BRIGHTNESS = 50
-OFF_TRANSITION = 300   # seconds – slow fade out
+OFF_TRANSITION = 300   # seconds, fade-out duration
 ON_TIME = "05:45:00"
 
 
@@ -43,7 +41,7 @@ class SunriseFade(hass.Hass):
         self.run_daily(self._on_time, self.on_time)
         self.listen_state(self._on_elevation, "sun.sun", attribute="elevation")
         self.listen_event(self._on_event, "lamp_sunrise_on")
-        self.log(f"sunrise_fade loaded – {self.lamp}, on at {self.on_time} if < {self.dark_elevation}°, off at {self.off_elevation}°")
+        self.log(f"sunrise_fade loaded: {self.lamp}, on at {self.on_time} if < {self.dark_elevation}°, off at {self.off_elevation}°")
 
     def _on_time(self, **kwargs):
         self.lamp_sunrise_on()

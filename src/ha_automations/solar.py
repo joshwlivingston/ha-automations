@@ -1,4 +1,4 @@
-"""Sun position helpers."""
+"""Sun elevation helpers."""
 
 
 def parse_sun(attrs):
