@@ -22,9 +22,9 @@ Steps:
 2. In your config repo, edit `apps.yaml` to point at your lights. Example:
 
    ```yaml
-   bedroom_rising_light:
-     module: rising_light_fade
-     class: RisingLightFade
+   bedroom_sunrise:
+     module: sunrise_fade
+     class: SunriseFade
      light: light.bedroom_lamp
    ```
 

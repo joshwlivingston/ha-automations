@@ -15,7 +15,7 @@ class Detector(Protocol):
         """(level, rising). level is None if unavailable; rising is None if unknown."""
         ...
 
-    def listen(self, callback: Callable[[], None]) -> None:
+    def listen(self, callback: Callable[[], object]) -> None:
         """Call `callback` whenever the level may have changed."""
         ...
 
@@ -29,7 +29,7 @@ class SunDetector:
     def read(self) -> tuple[float | None, bool | None]:
         return sun_state(self.app)
 
-    def listen(self, callback: Callable[[], None]) -> None:
+    def listen(self, callback: Callable[[], object]) -> None:
         def on_change(entity, attribute, old, new, **kwargs):
             callback()
 
