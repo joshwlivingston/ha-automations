@@ -10,13 +10,22 @@ and the AppDaemon add-on on HAOS pip-installs them. Nobody edits code on the box
 
 To run against the real HA from your Mac, run `appdaemon` locally with a long-lived token.
 
-## Release
+## Release + deploy
 
-1. Bump `version` in `pyproject.toml`, commit, then `git tag vX.Y.Z && git push --tags`.
-2. In the AppDaemon add-on config, set `python_packages` to
-   `git+https://github.com/<you>/ha-automations@vX.Y.Z` and restart the add-on.
+    # bump version in pyproject.toml, commit, then:
+    git tag vX.Y.Z && git push && git push --tags
+    scripts/deploy.sh
+
+`deploy.sh` syncs `deploy/appdaemon/apps/` (shims + `apps.yaml`) to the add-on,
+sets `python_packages` to the tag's tarball (other options preserved), and restarts
+AppDaemon. Rollback: `scripts/deploy.sh v0.1.0`.
 
 ## One-time box setup
 
-Copy `deploy/appdaemon/apps/*` into the add-on's apps dir. The shims re-export
-classes from the installed package, so they never need to change.
+1. Install the **AppDaemon** and **Advanced SSH & Web Terminal** add-ons.
+2. In the SSH add-on config, add your public key and set `sftp: true` (needed for rsync).
+3. Create `.deploy.env` (gitignored):
+
+       HA_SSH=root@homeassistant.local
+       REPO_URL=https://github.com/<you>/ha-automations
+
