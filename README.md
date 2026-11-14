@@ -18,8 +18,9 @@ resolves the latest `v*` tag of `PACKAGE_REPO`, checks out that tag, and runs
 `scripts/deploy.sh` with `APPS_YAML` pointing at its own `apps.yaml`.
 
 `PACKAGE_REPO` defaults to `<config repo owner>/ha-automations`. A fork under the
-same name needs no edits, only the `HA_SSH` variable. Scheduled runs set
-`ONLY_IF_CHANGED=1`, so they exit after one SSH call when the box is current.
+same name needs no edits, only the `HA_SSH` variable. `deploy.sh` exits after one
+SSH call if the box already runs that tag with the same `apps.yaml`; `FORCE=1`
+redeploys anyway.
 
 ## Release
 

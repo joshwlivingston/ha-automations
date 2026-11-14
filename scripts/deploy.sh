@@ -16,7 +16,7 @@
 #   REPO_URL       package source, e.g. https://github.com/you/ha-automations (required)
 #   ADDON_SLUG     default a0d7b954_appdaemon
 #   APPS_DIR       default /addon_configs/$ADDON_SLUG/apps
-#   ONLY_IF_CHANGED  set to 1 to skip if the box already runs this tag
+#   FORCE          set to 1 to deploy even if the box already runs this tag + apps.yaml
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -40,14 +40,23 @@ git ls-remote --exit-code --tags "$REPO_URL" "refs/tags/$tag" >/dev/null \
 spec="ha-automations @ $REPO_URL/archive/refs/tags/$tag.tar.gz"
 ssh_cmd=(ssh -p "$HA_SSH_PORT" "$HA_SSH")
 
-if [[ "${ONLY_IF_CHANGED:-}" == 1 ]]; then
-  current=$("${ssh_cmd[@]}" bash -s -- "$ADDON_SLUG" <<'REMOTE'
+sha256() { if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi | cut -d' ' -f1; }
+
+# Skip if the box already runs this tag (which fixes the shims) with this apps.yaml.
+if [[ "${FORCE:-}" != 1 ]]; then
+  {
+    read -r current_spec
+    read -r current_sha
+  } < <("${ssh_cmd[@]}" bash -s -- "$ADDON_SLUG" "$APPS_DIR" <<'REMOTE'
 curl -fsS -H "Authorization: Bearer $SUPERVISOR_TOKEN" "http://supervisor/addons/$1/info" \
-  | jq -r '.data.options.python_packages // [] | .[] | select(startswith("ha-automations"))'
+  | jq -r '[.data.options.python_packages // [] | .[] | select(startswith("ha-automations"))][0] // "none"'
+{ sha256sum "$2/apps.yaml" 2>/dev/null || echo none; } | cut -d' ' -f1
 REMOTE
   )
-  [[ "$current" == "$spec" ]] && { echo "✓ already running $tag"; exit 0; }
-  echo "deployed: ${current:-none}"
+  if [[ "$current_spec" == "$spec" && "$current_sha" == "$(sha256 < "$APPS_YAML")" ]]; then
+    echo "✓ already running $tag with this apps.yaml (FORCE=1 to redeploy)"; exit 0
+  fi
+  echo "deployed: $current_spec"
 fi
 
 echo "→ syncing apps to $HA_SSH:$APPS_DIR"
