@@ -2,10 +2,10 @@
 # name: test_summary_lines
   '''
   > SunriseFade bedroom_sunrise: {'light': 'light.x'}
-    load       init                 light=light.x detector=sun from_level=-6° to_level=0° off_level=4° brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
+    load: init; light=light.x detector=sun from_level=-6° to_level=0° off_level=4° brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
   > SunsetFade living: {'light': 'light.y'}
-    load       init                 light=light.y detector=sun from_level=6° to_level=-6° brightness=5%..50% start=none test_event=living_start
+    load: init; light=light.y detector=sun from_level=6° to_level=-6° brightness=5%..50% start=none test_event=living_start
   > LightFadeApp desk: {'light': 'light.z', 'detector': {'kind': 'sun'}, 'from_level': 10, 'to_level': 20, 'start': [{'event': 'alarm'}, {'daily': '06:00:00'}]}
-    load       init                 light=light.z detector=sun from_level=10° to_level=20° brightness=5%..50% start="event alarm, daily at 06:00:00" test_event=desk_start
+    load: init; light=light.z detector=sun from_level=10° to_level=20° brightness=5%..50% start="event alarm, daily at 06:00:00" test_event=desk_start
   '''
 # ---

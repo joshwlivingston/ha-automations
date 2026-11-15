@@ -26,7 +26,7 @@ Fire the app's test event and read the log. See [Verify](verify.qmd).
 
 ### Light apps
 
-- `skip arm` and `skip` lines give the reason in the second column: the sun is past the app's levels, outside them, or moving the wrong way.
-- `keep  above target  light.x 80% target=31% ...` means the light was already brighter, usually from a manual change. Fades never dim.
+- `skip arm` and `skip` lines give the reason after the colon: the sun is past the app's levels, outside them, or moving the wrong way.
+- `keep: above target; light.x 80% target=31% ...` means the light was already brighter, usually from a manual change. Fades never dim.
 - Sunrise Fade arms only if it is still dark at its `start` time. In summer, set an earlier `start`.
 - Check the entity id in `light`, and that the light supports brightness.
