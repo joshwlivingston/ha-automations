@@ -10,6 +10,7 @@ from ha_automations_release import (
     prod_version,
     release_changelog,
     repo_from_url,
+    unfinished_release,
 )
 
 TAGS = {"v0.1.0", "v0.1.0.9001", "v0.1.0.9002", "v0.1.0.9003"}
@@ -120,7 +121,9 @@ def test_config_repo_uses_origin_owner(monkeypatch, tmp_path):
     assert config_repo("fork-owner/ha-automations") == "someone/config"
 
 
-def fake_release_commands(monkeypatch, fail_on: str | None = None) -> list[str]:
+def fake_release_commands(
+    monkeypatch, fail_on: str | None = None, branch_on_origin: bool = True, log: str = ""
+) -> list[str]:
     import ha_automations_release as rel
 
     calls: list[str] = []
@@ -134,6 +137,10 @@ def fake_release_commands(monkeypatch, fail_on: str | None = None) -> list[str]:
             return "https://github.com/you/ha-automations/pull/16"
         if line.startswith("gh pr view"):
             return "abc1234def"
+        if line.startswith("git ls-remote --heads") and branch_on_origin:
+            return "abc1234def\trefs/heads/release/v0.2.0"
+        if line.startswith("git log"):
+            return log
         return ""
 
     monkeypatch.setattr(rel, "run", run)
@@ -158,10 +165,18 @@ def test_merge_release_pr_merges_through_a_pull_request(monkeypatch):
         f"gh pr merge {pr} -R you/ha-automations --squash --subject chore: release v0.2.0 --body ",
         f"gh pr view {pr} -R you/ha-automations --json mergeCommit -q .mergeCommit.oid",
         "git switch -q main",
+        "git ls-remote --heads origin release/v0.2.0",
         "git push -q origin --delete release/v0.2.0",
         "git branch -q -D release/v0.2.0",
         "git pull -q --ff-only origin main",
     ]
+
+
+def test_merge_release_pr_skips_a_branch_github_already_deleted(monkeypatch):
+    calls = fake_release_commands(monkeypatch, branch_on_origin=False)
+    merge_release_pr("v0.2.0", "you/ha-automations")
+    assert not any("--delete" in c for c in calls)
+    assert calls[-2:] == ["git branch -q -D release/v0.2.0", "git pull -q --ff-only origin main"]
 
 
 def test_merge_release_pr_failure_names_the_open_pull_request(monkeypatch):
@@ -169,3 +184,28 @@ def test_merge_release_pr_failure_names_the_open_pull_request(monkeypatch):
     with pytest.raises(ReleaseError, match=r"pull/16 is still open.*gh pr close"):
         merge_release_pr("v0.2.0", "you/ha-automations")
     assert calls[-1] == "git switch -q main"
+
+
+LOG = """\
+bbb ci: something after the release (#18)
+aaa chore: release v0.2.0
+999 feat: add a thing (#12)
+888 chore: release v0.1.0
+"""
+
+
+def test_unfinished_release_finds_an_untagged_release_commit(monkeypatch):
+    fake_release_commands(monkeypatch, log=LOG)
+    assert unfinished_release({"v0.1.0", "v0.1.0.9001"}) == ("0.2.0", "aaa")
+
+
+def test_unfinished_release_none_when_the_newest_release_is_tagged(monkeypatch):
+    fake_release_commands(monkeypatch, log=LOG)
+    assert unfinished_release({"v0.1.0", "v0.2.0"}) is None
+    fake_release_commands(monkeypatch, log="999 feat: add a thing (#12)\n")
+    assert unfinished_release(set()) is None
+
+
+def test_unfinished_release_accepts_a_pull_request_number(monkeypatch):
+    fake_release_commands(monkeypatch, log="aaa chore: release v0.3.0 (#20)\n")
+    assert unfinished_release({"v0.2.0"}) == ("0.3.0", "aaa")

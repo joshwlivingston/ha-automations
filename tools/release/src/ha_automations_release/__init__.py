@@ -8,7 +8,8 @@ Usage:
 dev and prod run the checks, push the tag, wait for CI, then run the config repo's deploy
 workflow and wait for it. prod first updates CHANGELOG.md and the version, commits them to a
 release/vX.Y.Z branch, opens a pull request, waits for its CI and squash-merges it, then tags the
-merge commit. Once everything succeeded it deletes dev tags older than the release.
+merge commit. Once everything succeeded it deletes dev tags older than the release. If an earlier
+prod run merged its release pull request but stopped before tagging, prod finishes that release.
 
 Settings, read from the environment or .deploy.env:
     CONFIG_REPO   config repo running the deploy workflow (default <owner>/ha-automations-config)
@@ -34,6 +35,7 @@ DEPLOY_WORKFLOW = "deploy.yml"
 CI_WORKFLOW = "ci.yml"
 POLL_SECONDS = 5
 POLL_TRIES = 24
+RELEASE_COMMIT = re.compile(r"^chore: release v(?P<version>\d+\.\d+\.\d+)(?: \(#\d+\))?$")
 GITHUB_URL = re.compile(r"github\.com[:/](?P<repo>[^/]+/[^/]+?)(?:\.git)?/?$")
 
 
@@ -241,6 +243,19 @@ def delete_tags(tags: list[str]) -> None:
     print(f"Deleted {', '.join(tags)}")
 
 
+def unfinished_release(tags: set[str]) -> tuple[str, str] | None:
+    """Returns (version, commit) of the newest release commit on origin/main if it has no tag.
+
+    That happens when release prod merged the release pull request but stopped before tagging.
+    """
+    log = run("git", "log", "origin/main", "--first-parent", "-n", "200", "--format=%H %s")
+    for line in log.splitlines():
+        sha, _, subject = line.partition(" ")
+        if m := RELEASE_COMMIT.match(subject):
+            return None if f"v{m['version']}" in tags else (m["version"], sha)
+    return None
+
+
 def merge_release_pr(tag: str, origin: str) -> str:
     """Commits the version files to a release branch and merges it into main through a pull request.
 
@@ -272,7 +287,9 @@ def merge_release_pr(tag: str, origin: str) -> str:
     finally:
         run("git", "switch", "-q", "main")
     print(f"Merged {url} as {sha[:7]}")
-    run("git", "push", "-q", "origin", "--delete", branch)
+    # GitHub may already have deleted the branch on merge.
+    if run("git", "ls-remote", "--heads", "origin", branch):
+        run("git", "push", "-q", "origin", "--delete", branch)
     run("git", "branch", "-q", "-D", branch)
     run("git", "pull", "-q", "--ff-only", "origin", "main")
     return sha
@@ -283,7 +300,14 @@ def release(kind: str, args: argparse.Namespace) -> None:
     preflight(args.dry_run)
     tags = all_tags()
     current = run("uv", "version", "--short")
-    version = dev_version(current, tags) if kind == "dev" else prod_version(current, args.bump, tags)
+    pending = unfinished_release(tags) if kind == "prod" else None
+    if pending:
+        version, sha = pending
+        print(f"v{version} was merged in {sha[:7]} but not tagged; finishing that release")
+    elif kind == "dev":
+        version = dev_version(current, tags)
+    else:
+        version = prod_version(current, args.bump, tags)
     tag = f"v{version}"
     stale = prior_dev_tags(tags, version) if kind == "prod" else []
     origin = origin_repo()
@@ -291,7 +315,7 @@ def release(kind: str, args: argparse.Namespace) -> None:
 
     edited = False
     try:
-        if kind == "prod":
+        if kind == "prod" and not pending:
             edited = True
             run("uv", "version", version, "--no-sync")
             changelog = Path(CHANGELOG)
@@ -301,7 +325,9 @@ def release(kind: str, args: argparse.Namespace) -> None:
             print(run("git", "diff", "--", CHANGELOG))
             print(run("git", "diff", "--stat"))
 
-        if kind == "prod":
+        if pending:
+            print(f"Commit: {pending[1][:7]} (already on main)")
+        elif kind == "prod":
             print(f"Pull request: release/{tag} into main, squash-merged once CI passes")
         print(f"Tag: {tag} ({kind}) on {origin}")
         if repo:
@@ -316,7 +342,9 @@ def release(kind: str, args: argparse.Namespace) -> None:
             print("Stopped")
             return
 
-        if kind == "prod":
+        if pending:
+            run("git", "tag", tag, pending[1])
+        elif kind == "prod":
             sha = merge_release_pr(tag, origin)
             run("git", "tag", tag, sha)
         else:

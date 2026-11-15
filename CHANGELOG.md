@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
+- `uv run release prod` no longer fails when GitHub deletes the release branch on merge, and finishes a release that was merged but not tagged.
+
 ## [0.2.0] - 2026-11-15
 
 - `scripts/deploy.sh` deploys dev tags (`vX.Y.Z.9xxx`) only with `DEV=1`, so you can test a build on the box before releasing it. Tags that are neither `vX.Y.Z` nor `vX.Y.Z.9xxx` are refused.
