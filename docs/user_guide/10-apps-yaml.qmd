@@ -1,0 +1,82 @@
+---
+title: apps.yaml
+guide-section: Use it
+---
+
+One top-level entry per app.
+
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  max_brightness: 30
+```
+
+## Entry
+
+| Line | Meaning |
+|---|---|
+| `bedroom_sunrise:` | App name. You choose it. |
+| `module`, `class` | Which app. From the app's page, or the table below. |
+| Other lines | Settings. Listed on the app's page. |
+
+| App | Module | Class |
+|---|---|---|
+| [Sunrise Fade](../docs/apps/sunrise-fade.qmd) | `sunrise_fade` | `SunriseFade` |
+| [Sunset Fade](../docs/apps/sunset-fade.qmd) | `sunset_fade` | `SunsetFade` |
+| [Light Fade](../docs/apps/light-fade.qmd) | `light_fade` | `LightFadeApp` |
+
+## Names
+
+- Unique.
+- Lowercase letters, digits, `_`.
+- Start of every log line for the app.
+- Test event: `<name>_start`, e.g. `bedroom_sunrise_start`.
+
+## Rules
+
+| Rule | Example |
+|---|---|
+| Indent settings two spaces | `  light: light.bedroom_lamp` |
+| Quote times. Unquoted, some read as numbers and the app does not load. | `"05:45:00"` |
+| Unknown settings are an error | A typo stops the app loading |
+| Leave a setting out for its default | |
+| `null` clears a default | `off_level: null` |
+
+## Settings for any app
+
+| Setting | Effect |
+|---|---|
+| `disable: true` | App off. Remove the line to turn it back on. |
+| `log_level: DEBUG` | More detail in the log |
+
+## Same app, several times
+
+One entry per use, each with its own name:
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+
+hallway_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.hallway
+  max_brightness: 20
+```
+
+To control several devices as one, make a group (**Settings > Devices & services > Helpers > Create helper > Group**), then use the group's entity ID.
+
+## Changes
+
+- Edit `apps.yaml`, push to `main`. The deploy restarts AppDaemon.
+- Edits on the Home Assistant box: overwritten on the next deploy.
+- Other files in AppDaemon's `apps` folder: deleted on the next deploy.

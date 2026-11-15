@@ -1,0 +1,31 @@
+---
+title: Check that it works
+guide-section: Get started
+---
+
+## Read the log
+
+1. **Settings > Add-ons > AppDaemon > Log**.
+2. Find a `load: init` line starting with the app's name. It lists the app's settings.
+
+```
+INFO bedroom_sunrise: load: init; light=light.bedroom_lamp detector=sun from_level=-6deg to_level=0deg off_level=4deg brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
+```
+
+No load line: look for an error naming the app. See [Troubleshooting](troubleshooting.qmd).
+
+## Run it now
+
+For apps with a test event:
+
+1. **Developer tools > Events**.
+2. Under **Fire an event**, enter the test event from the app's page. Usually `<app name>_start`, e.g. `bedroom_sunrise_start`.
+3. **Fire event**.
+
+| Result | Meaning |
+|---|---|
+| Device changes | App is running |
+| Log line says why nothing happened | App is running, outside its time window |
+| Nothing in the log | App did not load, or wrong event name |
+
+Each app's **Test it** section lists what to expect.

@@ -1,0 +1,73 @@
+---
+title: Start triggers
+---
+
+`start`: when a light app checks whether to run.
+
+| `start` | Runs | Default for |
+|---|---|---|
+| Empty | Every day, whenever the sun is between `from_level` and `to_level` | Sunset Fade |
+| One or more triggers | After a trigger, if the sun has not reached `from_level` | Sunrise Fade |
+
+With triggers:
+
+1. A trigger fires.
+2. The light turns on at `min_brightness`.
+3. The light brightens from the sun's level at that moment.
+4. At `off_level`, the light turns off and the app waits for the next trigger.
+
+If the sun is already past `from_level` when the trigger fires, the app does nothing until the next trigger.
+
+## Triggers
+
+`start` is a list. Any entry that fires starts the check.
+
+```yaml
+start:
+  - daily: "05:45:00"
+  - event: bedroom_alarm
+```
+
+| Entry | Fires |
+|---|---|
+| `- daily: "05:45:00"` | Every day at that time |
+| `- event: bedroom_alarm` | When that Home Assistant event fires |
+
+`daily` times:
+
+- 24-hour, quoted: `"HH:MM:SS"`.
+- Sun-relative: `"sunrise - 00:30:00"`, `"sunset + 00:15:00"`.
+- Home Assistant time zone.
+
+## Phone alarm
+
+1. In the Home Assistant Companion app, turn on the **Next alarm** sensor.
+2. Create a Home Assistant automation that fires the event:
+
+   ```yaml
+   alias: Bedroom alarm
+   triggers:
+     - trigger: time
+       at: sensor.my_phone_next_alarm
+   actions:
+     - event: bedroom_alarm
+   ```
+
+3. Add the app entry:
+
+   ```yaml
+   bedroom_sunrise:
+     module: sunrise_fade
+     class: SunriseFade
+     light: light.bedroom_lamp
+     start:
+       - daily: "06:30:00"
+       - event: bedroom_alarm
+   ```
+
+The `daily` line is a fallback for days without an alarm. Drop it to start only with the alarm.
+
+## Test event
+
+- Every light app listens for `<app name>_start`, whatever `start` says.
+- Fire it from **Developer tools > Events**. See [Check that it works](../../user-guide/check.qmd).

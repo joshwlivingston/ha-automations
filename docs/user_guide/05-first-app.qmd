@@ -1,0 +1,28 @@
+---
+title: Add your first app
+guide-section: Get started
+---
+
+1. Pick an app from [Apps](../docs/apps/index.qmd). Its page shows the entry to add and the devices it needs.
+2. Find each device's entity ID: **Settings > Devices & services > Entities**, search for the device, copy its **Entity ID**.
+3. Open `apps.yaml` in your config repo. Delete the examples you do not want.
+4. Add the app's entry. Example, Sunrise Fade on a lamp:
+
+   ```yaml
+   bedroom_sunrise:
+     module: sunrise_fade
+     class: SunriseFade
+     light: light.bedroom_lamp
+   ```
+
+   Replace `light.bedroom_lamp` with your entity ID.
+
+5. Commit to `main`.
+6. Open the **Actions** tab. Wait for the **Deploy** run to finish. A green check means it deployed.
+
+- Edit on GitHub or in a local clone. A push to `main` deploys either way.
+- Read [apps.yaml](apps-yaml.qmd) for the rules. Find settings on the app's page.
+
+## Next
+
+[Check that it works](check.qmd).

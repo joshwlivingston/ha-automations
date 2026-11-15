@@ -14,7 +14,7 @@ always the sun, so levels are sun elevation in degrees.
 
 Testing
 -------
-Settings > Tools > Events, Event type `<app name>_start`, e.g. `living_room_sunset_start` > Fire event
+Developer tools > Events, Event type `<app name>_start`, e.g. `living_room_sunset_start` > Fire event
 """
 from typing import ClassVar
 
@@ -25,9 +25,9 @@ from ha_automations.detectors import Sun
 
 
 class SunsetSettings(LightFadeSettings):
-    detector: Sun = Field(Sun(), description="always the sun")
-    from_level: float = Field(6, description="a little above the horizon, brightening starts")
-    to_level: float = Field(-6, description="civil dusk, max brightness")
+    detector: Sun = Field(Sun(), description="Uses the sun's elevation")
+    from_level: float = Field(6, description="A little above the horizon. The light turns on")
+    to_level: float = Field(-6, description="Civil dusk. The light reaches full brightness")
 
 
 class SunsetFade(LightFadeApp):

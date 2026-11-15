@@ -1,0 +1,47 @@
+---
+title: Set up deploys
+guide-section: Get started
+---
+
+Deploys run on a computer on your home network (a self-hosted runner). GitHub cannot reach Home Assistant directly.
+
+## Add a runner
+
+1. Config repo: **Settings > Actions > Runners > New self-hosted runner**.
+2. Pick the computer's OS. Run the commands GitHub shows, on that computer.
+3. Install the runner as a service so it starts on boot. See GitHub's runner docs for your OS.
+4. Check the runner shows **Idle**.
+
+Runner computer needs:
+
+- `git`, `ssh`, `rsync`.
+- Passwordless SSH to Home Assistant. See [Install the add-ons](add-ons.qmd).
+
+## Set variables
+
+1. **Settings > Environments > New environment**. Name: `haos`.
+2. Under **Environment variables**, add:
+
+| Variable | Required | Value |
+|---|---|---|
+| `HA_SSH` | Yes | `root@homeassistant.local`, or `root@<IP address>` |
+| `PACKAGE_REPO` | Yes, unless your account has its own copy of ha-automations | `joshwlivingston/ha-automations` |
+| `HA_SSH_PORT` | No | The add-on's SSH port, if not `22` |
+| `RUNNER_LABELS` | No | Runner labels as a JSON list, if not `["self-hosted"]` |
+
+## When it deploys
+
+| When | Deploys |
+|---|---|
+| Push to `main` | Your `apps.yaml`, with the latest release |
+| New release | The new release, found by a scheduled check |
+| By hand | **Actions > Deploy > Run workflow**. Optional: a version, and **force**. |
+
+- Scheduled check: every 15 minutes by day, hourly overnight.
+- Schedule times: UTC, set for US Mountain time. Change the `cron` lines in `.github/workflows/deploy.yml`.
+- If nothing changed, the run stops.
+- Each deploy restarts AppDaemon.
+
+## Next
+
+[Add your first app](first-app.qmd).

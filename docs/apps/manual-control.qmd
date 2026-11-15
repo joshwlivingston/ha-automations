@@ -1,0 +1,59 @@
+---
+title: Manual control
+---
+
+```{python}
+#| include: false
+from ha_automations import fades
+```
+
+What happens when you use a light while a light app controls it.
+
+## During a fade
+
+| You | The app |
+|---|---|
+| Turn the light up | Leaves it. Light apps never lower brightness. It raises the light again once its own level passes yours. |
+| Turn the light down | Raises it back to its own level at the next sun update |
+| Turn the light off | Turns it back on at the next sun update |
+| Turn the light on before the fade | Leaves it. Raises it once the fade's level passes yours. |
+
+## After a fade
+
+| You | The app |
+|---|---|
+| Turn the light off a little past `to_level` | Leaves it off |
+| Turn the light on after `off_level`, app has `start` triggers | Leaves it on |
+| Turn the light on after `off_level`, app has no `start` triggers | Turns it off at the next sun update, until the sun turns around at midday or midnight |
+
+## Timing
+
+- The light changes each time Home Assistant updates the sun's elevation, every few minutes.
+- Each change is a smooth `{python} fades.RAMP_TRANSITION`-second transition.
+- The first change after a start trigger takes `{python} fades.ON_TRANSITION` seconds.
+- The fade-out at `off_level` takes `off_transition` seconds, `{python} fades.OFF_TRANSITION` by default.
+
+## Restarts
+
+AppDaemon restarts on each deploy, and when Home Assistant restarts.
+
+| App | After a restart during a fade |
+|---|---|
+| No `start` triggers, like Sunset Fade | Carries on at the next sun update |
+| With `start` triggers, like Sunrise Fade | Stops until the next trigger. Fire the test event to resume. |
+
+## Turn an app off
+
+Add `disable: true` to its entry in `apps.yaml`, then push:
+
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+  disable: true
+```
+
+Remove the line, or delete the entry, when you are done.
+
+To pause every app, stop the AppDaemon add-on. Disabling the deploy workflow does not pause the apps.
