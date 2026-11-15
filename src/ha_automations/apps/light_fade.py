@@ -20,18 +20,8 @@ bedroom_fade:
 
 Settings
 --------
-setting          default       meaning
-light            required      light entity to control
-detector         required      light level source, a detectors.DetectorConfig
-start            []            triggers that arm the fade (see triggers.py); empty means always armed
-from_level       required      level where brightening starts
-to_level         required      level where max_brightness is reached
-off_level        unset         level where the light turns off; unset means never
-min_brightness   5             starting brightness, percent
-max_brightness   50            brightness at to_level, percent
-off_transition   300           fade-out length, seconds
-
-Unknown settings are an error.
+Each field of LightFadeSettings has a description. The docs site renders
+them as the settings table. Unknown settings are an error.
 
 Testing
 -------
@@ -61,15 +51,17 @@ EVENT_SUFFIX = "_start"
 
 
 class LightFadeSettings(Config):
-    light: str
-    detector: DetectorConfig
-    start: tuple[TriggerConfig, ...] = ()
-    from_level: float
-    to_level: float
-    off_level: float | None = None
-    min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100)
-    max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100)
-    off_transition: float = Field(OFF_TRANSITION, ge=0)
+    light: str = Field(description="light entity to control")
+    detector: DetectorConfig = Field(description="light level source, a detectors.DetectorConfig")
+    start: tuple[TriggerConfig, ...] = Field(
+        (), description="triggers that arm the fade; empty means always armed"
+    )
+    from_level: float = Field(description="level where brightening starts")
+    to_level: float = Field(description="level where max_brightness is reached")
+    off_level: float | None = Field(None, description="level where the light turns off; unset means never")
+    min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100, description="starting brightness, percent")
+    max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100, description="brightness at to_level, percent")
+    off_transition: float = Field(OFF_TRANSITION, ge=0, description="fade-out length, seconds")
 
 
 class LightFadeApp(hass.Hass):

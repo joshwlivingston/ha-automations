@@ -1,0 +1,22 @@
+---
+title: Extending
+guide-section: Development
+---
+
+## Add an app
+
+1. Add `src/ha_automations/apps/<name>.py` with a `LightFadeSettings` subclass for the defaults, and a `LightFadeApp` subclass that sets `Settings` to it. Give every overridden field a `Field(description=...)`. See `sunset_fade.py`.
+2. Add the shim `deploy/appdaemon/apps/<name>.py`, importing the app class.
+3. Add the app to the parametrized tests in `tests/test_apps.py`.
+4. Add `docs/apps/<name>.qmd`, following `sunset-fade.qmd`. The settings table and chart come from the `_helpers.py` functions. Add the app to the table in `docs/apps/index.qmd`.
+
+## Add a detector
+
+1. Add `src/ha_automations/detectors/<name>.py` with a class that has `read()` and `listen()`, and a `Config` model with `kind: Literal["<name>"]` and a `build(app)` method. See `sun.py`.
+2. Make `DetectorConfig` in `detectors/__init__.py` a union discriminated on `kind`.
+
+## Add a trigger
+
+1. Add a `Config` model with a `listen(app, callback)` method to `triggers.py`.
+2. Add it to the `TriggerConfig` union.
+3. Add it to the triggers table on the Light Fade page.

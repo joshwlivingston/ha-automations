@@ -72,3 +72,9 @@ def test_generic_from_settings():
     app = build(LightFadeApp, args, app_name="desk")
     assert (app.fade.from_level, app.fade.to_level, app.fade.triggered) == (10, 200, True)
     assert app.events == ["alarm", "desk_start"]
+
+
+@pytest.mark.parametrize("app", [LightFadeApp, SunriseFade, SunsetFade])
+def test_settings_have_descriptions(app):
+    missing = [name for name, f in app.Settings.model_fields.items() if not f.description]
+    assert missing == []

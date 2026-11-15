@@ -9,17 +9,8 @@ bedroom_sunrise:
 
 Settings
 --------
-See light_fade.py. The detector is always the sun.
-
-Defaults
---------
-setting      value                   meaning
-start        - daily: "05:45:00"     when to check if it is dark
-from_level   -6                      civil dawn, below which the light turns on
-to_level     0                       sunrise, max brightness
-off_level    4                       a little after sunrise, light turns off
-
-Levels are sun elevation in degrees.
+Same as light_fade.py, with the defaults in SunriseSettings. The detector is
+always the sun, so levels are sun elevation in degrees.
 
 Testing
 -------
@@ -27,17 +18,21 @@ Settings > Tools > Events, Event type `<app name>_start`, e.g. `bedroom_sunrise_
 """
 from typing import ClassVar
 
+from pydantic import Field
+
 from ha_automations.apps.light_fade import LightFadeApp, LightFadeSettings
 from ha_automations.detectors import Sun
 from ha_automations.triggers import Daily, TriggerConfig
 
 
 class SunriseSettings(LightFadeSettings):
-    detector: Sun = Sun()
-    start: tuple[TriggerConfig, ...] = (Daily(daily="05:45:00"),)
-    from_level: float = -6
-    to_level: float = 0
-    off_level: float | None = 4
+    detector: Sun = Field(Sun(), description="always the sun")
+    start: tuple[TriggerConfig, ...] = Field(
+        (Daily(daily="05:45:00"),), description="when to check if it is dark"
+    )
+    from_level: float = Field(-6, description="civil dawn, below which the light turns on")
+    to_level: float = Field(0, description="sunrise, max brightness")
+    off_level: float | None = Field(4, description="a little after sunrise, light turns off")
 
 
 class SunriseFade(LightFadeApp):

@@ -1,0 +1,25 @@
+---
+title: Troubleshooting
+guide-section: Get Started
+---
+
+## The app does not load
+
+The AppDaemon log shows a validation error naming the setting.
+
+- **Extra inputs are not permitted**: a setting name is misspelled, or does not exist for that app. Check the app's settings table.
+- **Field required**: a required setting is missing, such as `light`, or `from_level` on Light Fade.
+- **Input should be less than or equal to 100**: a brightness is outside 0 to 100.
+
+## The deploy fails
+
+- **tag vX.Y.Z not found on REPO_URL. Push it first.** Push the tag, or deploy a tag that exists.
+- **Already running vX.Y.Z with this apps.yaml.** Nothing changed. Set `FORCE=1` to deploy anyway.
+- **no SUPERVISOR_TOKEN in SSH session.** The script must connect through the Advanced SSH & Web Terminal add-on, which provides the token.
+- **APPS_YAML not found.** The path is relative to the root of this repo, not your config repo.
+
+## The light does nothing
+
+- Fire the test event and read the log. `outside fade, nothing to do` means the sun is outside the app's levels right now, or moving the wrong way.
+- Sunrise Fade arms only if it is still dark at its `start` time. In summer, set an earlier `start`.
+- Check the entity id in `light`, and that the light supports brightness.

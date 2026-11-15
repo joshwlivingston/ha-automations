@@ -5,3 +5,5 @@ __pycache__/
 dist/
 .deploy.env
 deploy/appdaemon/apps/apps.yaml
+great-docs/
+_freeze/

@@ -8,6 +8,10 @@ dependencies = ["pydantic>=2"]  # AppDaemon, which also ships pydantic, is provi
 
 [dependency-groups]
 dev = ["appdaemon>=4.5.16", "pytest>=9.2.0", "ruff>=0.17.5", "pyright>=1.1.414"]
+docs = [
+    "great-docs>=0.17.0",
+    "matplotlib>=3.11.2",
+]
 
 [build-system]
 requires = ["hatchling"]

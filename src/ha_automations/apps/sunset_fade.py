@@ -9,17 +9,8 @@ living_room_sunset:
 
 Settings
 --------
-See light_fade.py. The detector is always the sun.
-
-Defaults
---------
-setting      value     meaning
-start        []        always armed
-from_level   6         a little above the horizon, brightening starts
-to_level     -6        civil dusk, max brightness
-off_level    unset     light stays on
-
-Levels are sun elevation in degrees.
+Same as light_fade.py, with the defaults in SunsetSettings. The detector is
+always the sun, so levels are sun elevation in degrees.
 
 Testing
 -------
@@ -27,14 +18,16 @@ Settings > Tools > Events, Event type `<app name>_start`, e.g. `living_room_suns
 """
 from typing import ClassVar
 
+from pydantic import Field
+
 from ha_automations.apps.light_fade import LightFadeApp, LightFadeSettings
 from ha_automations.detectors import Sun
 
 
 class SunsetSettings(LightFadeSettings):
-    detector: Sun = Sun()
-    from_level: float = 6
-    to_level: float = -6
+    detector: Sun = Field(Sun(), description="always the sun")
+    from_level: float = Field(6, description="a little above the horizon, brightening starts")
+    to_level: float = Field(-6, description="civil dusk, max brightness")
 
 
 class SunsetFade(LightFadeApp):

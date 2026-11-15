@@ -1,0 +1,52 @@
+---
+title: How fades work
+guide-section: How it works
+---
+
+```{python}
+#| include: false
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(next(p for p in Path.cwd().parents if (p / "great-docs.yml").exists()) / "docs"))
+import _helpers as h
+from ha_automations import fades
+```
+
+Every app is a `LightFade` (in `fades.py`) wired to Home Assistant by `LightFadeApp`. `LightFade` has no Home Assistant imports. It reads a `Detector` and writes a `Light`, so it is tested with fakes.
+
+## Levels and direction
+
+A detector reports a level, where higher is brighter, and whether it is rising. `from_level`, `to_level` and `off_level` are in the detector's units. For the sun that is elevation in degrees.
+
+The fade rises if `to_level > from_level` and falls otherwise. A reading whose `rising` points the other way is ignored. An unknown direction is accepted.
+
+## Arming
+
+- **Untriggered** (no `start`): the ramp always starts at `from_level`, so the fade acts whenever the level is in range.
+- **Triggered**: `start()` arms the fade only if the level is known, moving the fade's way, and short of `from_level`. The ramp then starts at the current level, not `from_level`. The fade disarms once it turns the light off at `off_level`, and also when a `start()` check fails.
+
+## Each update
+
+The detector calls `update()` whenever the level may have changed. For the sun that is each change of `sun.sun`'s elevation.
+
+1. Skip if the level is unknown, the fade is not armed, or the reading moves the wrong way.
+2. If `off_level` is set and the level has reached it, turn the light off over `off_transition` if it is on. A triggered fade disarms.
+3. Skip if the level is before the ramp start, or more than `END_MARGIN` past `to_level`. The margin catches a final update that lands just past `to_level`.
+4. Compute progress from the ramp start to `to_level` (`curves.progress`, clamped to 0..1), ease it with `curves.ease_in` so early steps are subtle, and map it to `min_brightness`..`max_brightness` (`fades.brightness_at`).
+5. Raise the light to that brightness over `RAMP_TRANSITION` seconds, or `ON_TRANSITION` for the first step after `start()`. `brighten_only` never lowers the light, so manual increases stick.
+
+## Constants
+
+```{python}
+#| echo: false
+#| output: asis
+h.constants_table(fades, {
+    "MIN_BRIGHTNESS": "default `min_brightness`; the lowest level the bulb visibly glows at",
+    "MAX_BRIGHTNESS": "default `max_brightness`",
+    "RAMP_TRANSITION": "seconds per brightness step",
+    "ON_TRANSITION": "seconds for the first step after `start()` arms the fade",
+    "OFF_TRANSITION": "default `off_transition`, seconds",
+    "END_MARGIN": "how far past `to_level` the fade keeps acting, in level units",
+})
+```

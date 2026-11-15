@@ -1,0 +1,96 @@
+---
+title: Sunset Fade
+description: Brighten a light as the sun sets.
+---
+
+```{python}
+#| include: false
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(next(p for p in Path.cwd().parents if (p / "great-docs.yml").exists()) / "docs"))
+import _helpers as h
+from ha_automations.apps import sunset_fade
+S = sunset_fade.SunsetSettings
+```
+
+Brightens a light as the sun goes down, so the room is lit by the time it is dark. The light stays on for the evening.
+
+## What happens
+
+1. When the setting sun drops to `from_level`, the light turns on at `min_brightness`.
+2. As the sun sinks, the light brightens on an ease-in curve until it reaches `max_brightness` at `to_level` (civil dusk).
+3. After that the app leaves the light alone. Turn it off whenever you like.
+
+There is no `start` trigger by default. The fade is always armed and runs every evening.
+
+```{python}
+#| echo: false
+#| fig-cap: "Brightness against sun elevation with the default settings. Time runs left to right as the sun sets."
+h.fade_chart(S)
+```
+
+## Add it
+
+```{python}
+#| echo: false
+#| output: asis
+h.usage_yaml(sunset_fade)
+```
+
+`light` is the only required setting.
+
+## Settings
+
+```{python}
+#| echo: false
+#| output: asis
+h.settings_table(S)
+```
+
+Unknown settings are an error, so a typo stops the app from loading instead of being ignored.
+
+## Recipes
+
+Start later and finish darker, for a room with good daylight:
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  from_level: 2
+  to_level: -8
+```
+
+A softer evening light:
+
+```yaml
+  max_brightness: 30
+```
+
+Several lights: add one entry per light, each with its own name.
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+
+hallway_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.hallway
+  max_brightness: 20
+```
+
+## Test it
+
+In Home Assistant, go to **Developer Tools > Events**, enter `<app name>_start` (for example `living_room_sunset_start`) as the event type and select **Fire event**. This updates the light now. Outside the dusk window the AppDaemon log says `outside fade, nothing to do`.
+
+## Good to know
+
+- The app only raises brightness. Turn the light up by hand and the fade leaves it there.
+- Turning the light off by hand during the fade does not stop it. The next update turns it back on. A little past `to_level` the fade stops, and the light stays as you leave it.
+- The app ignores the sun while it is rising, so a morning with the same elevations does nothing.
+- Restarting AppDaemon during the fade is safe. It picks up at the next elevation update.

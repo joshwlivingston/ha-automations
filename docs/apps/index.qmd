@@ -1,0 +1,36 @@
+---
+title: Apps
+---
+
+```{python}
+#| include: false
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(next(p for p in Path.cwd().parents if (p / "great-docs.yml").exists()) / "docs"))
+import _helpers as h
+from ha_automations.apps import light_fade, sunrise_fade, sunset_fade
+```
+
+Each app controls one light. To run an app on several lights, add one entry per light to `apps.yaml`, each with its own name.
+
+```{python}
+#| echo: false
+#| output: asis
+h.compare_table([
+    ("Sunrise Fade", "sunrise-fade.qmd", sunrise_fade.SunriseSettings,
+     "Turns a light on before dawn, brightens it to sunrise, then turns it off."),
+    ("Sunset Fade", "sunset-fade.qmd", sunset_fade.SunsetSettings,
+     "Brightens a light as the sun sets and leaves it on."),
+    ("Light Fade", "light-fade.qmd", light_fade.LightFadeSettings,
+     "The general fade. You choose the levels, triggers and direction."),
+])
+```
+
+Levels are sun elevation in degrees: 0 is the horizon, negative is below it.
+
+## Which app?
+
+- **Waking up**: [Sunrise Fade](sunrise-fade.qmd).
+- **Evenings**: [Sunset Fade](sunset-fade.qmd).
+- **Something else**, such as different levels or an alarm trigger: [Light Fade](light-fade.qmd). Sunrise Fade and Sunset Fade are Light Fade with different defaults, so every setting on the Light Fade page works for them too.

@@ -1,0 +1,11 @@
+---
+title: Fork it
+guide-section: Get Started
+---
+
+Fork this repo to add or change apps. Then:
+
+1. Set `REPO_URL` in your deploy settings to your fork.
+2. Release from your fork as described in [Releasing](releasing.qmd). The deploy script installs tags from `REPO_URL`.
+
+Pull requests back to this repo are welcome.

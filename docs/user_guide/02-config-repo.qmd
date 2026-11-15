@@ -1,0 +1,37 @@
+---
+title: Config repo
+guide-section: Get Started
+---
+
+Your settings live in a private repo you own, apart from the code. Start from the template: **ha-automations-config-template** (coming soon).
+
+## apps.yaml
+
+Each top-level key is one app instance. The key is the app's name, and `module` and `class` say which app it is:
+
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  max_brightness: 30
+```
+
+| app | module | class |
+|---|---|---|
+| [Sunrise Fade](../docs/apps/sunrise-fade.qmd) | `sunrise_fade` | `SunriseFade` |
+| [Sunset Fade](../docs/apps/sunset-fade.qmd) | `sunset_fade` | `SunsetFade` |
+| [Light Fade](../docs/apps/light-fade.qmd) | `light_fade` | `LightFadeApp` |
+
+Every other key is a setting for that app. Each app page lists its settings. Unknown settings are an error, so a typo shows up in the AppDaemon log instead of being ignored.
+
+The app name also names its test event: `bedroom_sunrise` listens for `bedroom_sunrise_start`.
+
+## Deploy settings
+
+The deploy script needs to know where your Home Assistant box is, where your `apps.yaml` is, and which repo to install from. See [Deploy](deploy.qmd).

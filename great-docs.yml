@@ -1,0 +1,106 @@
+# Great Docs configuration. Options: https://posit-dev.github.io/great-docs/user-guide/configuration.html
+# Pages live in docs/. The homepage is index.qmd, which Great Docs only reads from the project root.
+
+display_name: ha-automations
+repo: https://github.com/joshwlivingston/ha-automations
+github_style: icon
+pypi: false
+site_url: https://joshwlivingston.github.io/ha-automations/
+jupyter: python3
+parser: numpy
+dynamic: false
+
+accent_color:
+  light: "#c66a10"
+  dark: "#f0a04b"
+
+hero:
+  name: ha-automations
+  tagline: Lights that follow the sun. Home Assistant automations, run by AppDaemon.
+  badges: false
+
+sections:
+  - title: Apps
+    dir: docs/apps
+
+user_guide: docs/user_guide
+
+navbar_order:
+  - Apps
+  - User Guide
+  - Reference
+  - Changelog
+
+nav_icons:
+  navbar:
+    Apps: lightbulb
+    "User Guide": book-open
+    Reference: code
+
+changelog:
+  enabled: true
+
+reference:
+  - title: Apps
+    desc: AppDaemon apps and their settings. Each app page in the Apps section explains them in full.
+    contents:
+      - apps.light_fade.LightFadeApp
+      - apps.light_fade.LightFadeSettings
+      - apps.sunrise_fade.SunriseFade
+      - apps.sunrise_fade.SunriseSettings
+      - apps.sunset_fade.SunsetFade
+      - apps.sunset_fade.SunsetSettings
+
+  - title: Fades
+    desc: The fade logic. No Home Assistant imports.
+    contents:
+      - fades.LightFade
+      - fades.brightness_at
+      - fades.brighten_only
+      - fades.MIN_BRIGHTNESS
+      - fades.MAX_BRIGHTNESS
+      - fades.RAMP_TRANSITION
+      - fades.ON_TRANSITION
+      - fades.OFF_TRANSITION
+      - fades.END_MARGIN
+
+  - title: Curves
+    desc: Easing and interpolation math.
+    contents:
+      - curves.progress
+      - curves.ease_in
+      - curves.lerp
+      - curves.clamp
+
+  - title: Detectors
+    desc: Light level sources that fades read from.
+    contents:
+      - detectors.Detector
+      - detectors.Reading
+      - detectors.Sun
+      - detectors.SunDetector
+      - detectors.DetectorConfig
+      - solar.sun_state
+      - solar.parse_sun
+
+  - title: Triggers
+    desc: Triggers that start fades.
+    contents:
+      - triggers.Trigger
+      - triggers.Daily
+      - triggers.Event
+      - triggers.TriggerConfig
+
+  - title: Lights
+    desc: Lights that fades write to.
+    contents:
+      - lights.Light
+      - lights.HassLight
+
+  - title: Config
+    desc: Base model for settings read from apps.yaml.
+    contents:
+      - config.Config
+
+# Run page code on every build so tables and charts always match the code.
+freeze: false

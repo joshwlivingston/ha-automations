@@ -1,42 +1,29 @@
 # ha-automations
 
-Home Assistant automations written in Python and run by the AppDaemon add-on. Changes are tested in CI and deployed to Home Assistant OS from a tagged release.
+Home Assistant automations written in Python and run by the AppDaemon add-on. Lights fade with the sun. Changes are tested in CI and deployed to Home Assistant OS from a tagged release.
 
-## You need your own config repo
+**Docs: https://joshwlivingston.github.io/ha-automations/**
 
-This repo holds the code only. Your settings (which lights, what times, your Home Assistant address) go in a separate private repo that you own.
+## Apps
 
-Start from the template: **[ha-automations-config-template](#)** *(coming soon)*.
+- [Sunrise Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunrise-fade.html): turns a light on dim before dawn and brightens it as the sun rises.
+- [Sunset Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunset-fade.html): brightens a light as the sun sets.
+- [Light Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/light-fade.html): the general fade. Choose your own levels and triggers.
 
-## Quickstart
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+```
 
-You need:
+## Get started
 
-- Home Assistant OS
-- The [**AppDaemon**](https://community.home-assistant.io/t/home-assistant-community-add-on-appdaemon-4/163259) add-on
-- The [**Advanced SSH & Web Terminal**](https://community.home-assistant.io/t/home-assistant-community-add-on-ssh-web-terminal/33820) add-on, set up with an SSH key
-
-Steps:
-
-1. Create your config repo from the template above.
-2. In your config repo, edit `apps.yaml` to point at your lights. Example:
-
-   ```yaml
-   bedroom_sunrise:
-     module: sunrise_fade
-     class: SunriseFade
-     light: light.bedroom_lamp
-   ```
-
-3. Fill in your Home Assistant SSH address in the config repo's settings.
-4. Deploy using the steps in the config repo.
-5. Check the AppDaemon add-on log in Home Assistant to confirm the apps started.
-
-Each app's settings are listed at the top of its file in `src/ha_automations/apps/`.
+Your settings go in a separate private config repo. Start from the template: **[ha-automations-config-template](#)** *(coming soon)*. Then follow the [Get Started guide](https://joshwlivingston.github.io/ha-automations/user-guide/overview.html).
 
 ## Fork it
 
-Fork this repo if you want to add or change automations. Point your config repo at your fork instead of this one.
+Fork this repo to add or change apps. Point your config repo at your fork instead of this one.
 
 ## Issues and pull requests
 
