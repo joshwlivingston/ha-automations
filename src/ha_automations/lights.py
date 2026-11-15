@@ -1,7 +1,7 @@
 """Lights that fades write to.
 
 A light reports its brightness in percent and can be turned on at a brightness
-or turned off, each over a transition in seconds.
+or turned off, each over a transition in seconds. str() of a light names it in logs.
 """
 from typing import Protocol
 
@@ -22,6 +22,9 @@ class HassLight:
     def __init__(self, app, entity_id: str):
         self.app = app
         self.entity_id = entity_id
+
+    def __str__(self) -> str:
+        return self.entity_id
 
     def brightness_pct(self) -> int:
         if self.app.get_state(self.entity_id) != "on":

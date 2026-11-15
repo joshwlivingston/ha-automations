@@ -10,6 +10,9 @@ from ha_automations.solar import sun_state
 class SunDetector:
     """Sun elevation in degrees from `sun.sun`."""
 
+    label = "sun"
+    unit = "°"
+
     def __init__(self, app):
         self.app = app
 

@@ -11,6 +11,11 @@ class Reading(NamedTuple):
 
 
 class Detector(Protocol):
+    label: str
+    """What the detector measures, for logs, e.g. sun."""
+    unit: str
+    """Unit of its levels, for logs, e.g. °."""
+
     def read(self) -> Reading:
         """Current reading."""
         ...
