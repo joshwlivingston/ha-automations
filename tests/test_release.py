@@ -5,6 +5,7 @@ from ha_automations_release import (
     config_repo,
     dev_version,
     latest_release,
+    merge_release_pr,
     prior_dev_tags,
     prod_version,
     release_changelog,
@@ -117,3 +118,54 @@ def test_config_repo_uses_origin_owner(monkeypatch, tmp_path):
     assert config_repo("fork-owner/ha-automations") == "fork-owner/ha-automations-config"
     monkeypatch.setenv("CONFIG_REPO", "someone/config")
     assert config_repo("fork-owner/ha-automations") == "someone/config"
+
+
+def fake_release_commands(monkeypatch, fail_on: str | None = None) -> list[str]:
+    import ha_automations_release as rel
+
+    calls: list[str] = []
+
+    def run(*cmd: str, capture: bool = True) -> str:
+        line = " ".join(cmd)
+        calls.append(line)
+        if fail_on and line.startswith(fail_on):
+            raise ReleaseError(f"failed: {line}")
+        if line.startswith("gh pr create"):
+            return "https://github.com/you/ha-automations/pull/16"
+        if line.startswith("gh pr view"):
+            return "abc1234def"
+        return ""
+
+    monkeypatch.setattr(rel, "run", run)
+    monkeypatch.setattr(rel, "find_run", lambda *a, **k: {"databaseId": 1, "url": "ci"})
+    monkeypatch.setattr(rel, "watch", lambda found, repo: calls.append(f"watch {found['url']}"))
+    return calls
+
+
+def test_merge_release_pr_merges_through_a_pull_request(monkeypatch):
+    calls = fake_release_commands(monkeypatch)
+    assert merge_release_pr("v0.2.0", "you/ha-automations") == "abc1234def"
+    pr = "https://github.com/you/ha-automations/pull/16"
+    assert calls == [
+        "git switch -q -c release/v0.2.0",
+        "git commit -q -m chore: release v0.2.0 -- CHANGELOG.md pyproject.toml uv.lock",
+        "git push -q -u origin release/v0.2.0",
+        (
+            "gh pr create -R you/ha-automations --base main --head release/v0.2.0 "
+            "--title chore: release v0.2.0 --body Release v0.2.0, opened by `uv run release prod`."
+        ),
+        "watch ci",
+        f"gh pr merge {pr} -R you/ha-automations --squash --subject chore: release v0.2.0 --body ",
+        f"gh pr view {pr} -R you/ha-automations --json mergeCommit -q .mergeCommit.oid",
+        "git switch -q main",
+        "git push -q origin --delete release/v0.2.0",
+        "git branch -q -D release/v0.2.0",
+        "git pull -q --ff-only origin main",
+    ]
+
+
+def test_merge_release_pr_failure_names_the_open_pull_request(monkeypatch):
+    calls = fake_release_commands(monkeypatch, fail_on="gh pr merge")
+    with pytest.raises(ReleaseError, match=r"pull/16 is still open.*gh pr close"):
+        merge_release_pr("v0.2.0", "you/ha-automations")
+    assert calls[-1] == "git switch -q main"

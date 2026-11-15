@@ -56,7 +56,7 @@ uv run release dev                              # tag the current dev version an
 uv run release prod [patch|minor|major|X.Y.Z]   # release vX.Y.Z, default patch
 ```
 
-Both run the checks, push the tag, wait for CI, then run the config repo's deploy workflow and wait for it. `prod` also moves `## [Unreleased]` in `CHANGELOG.md` to the new version, commits, and deletes older dev tags once CI and the deploy succeed. If it stops early, run `uv run release prune-dev-tags`.
+Both run the checks, push the tag, wait for CI, then run the config repo's deploy workflow and wait for it. `prod` first moves `## [Unreleased]` in `CHANGELOG.md` to the new version and bumps it, commits that to a `release/vX.Y.Z` branch, opens a pull request, waits for its CI, squash-merges it and tags the merge commit (`main` only accepts pull requests). It deletes older dev tags once CI and the deploy succeed. If it stops early, run `uv run release prune-dev-tags`.
 
 | Option | Meaning |
 |---|---|

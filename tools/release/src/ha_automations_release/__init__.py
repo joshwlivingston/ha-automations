@@ -6,8 +6,9 @@ Usage:
     uv run release prune-dev-tags                   delete dev tags older than the latest release
 
 dev and prod run the checks, push the tag, wait for CI, then run the config repo's deploy
-workflow and wait for it. prod also updates CHANGELOG.md and the version, commits, and deletes
-dev tags older than the release once everything succeeded.
+workflow and wait for it. prod first updates CHANGELOG.md and the version, commits them to a
+release/vX.Y.Z branch, opens a pull request, waits for its CI and squash-merges it, then tags the
+merge commit. Once everything succeeded it deletes dev tags older than the release.
 
 Settings, read from the environment or .deploy.env:
     CONFIG_REPO   config repo running the deploy workflow (default <owner>/ha-automations-config)
@@ -240,6 +241,43 @@ def delete_tags(tags: list[str]) -> None:
     print(f"Deleted {', '.join(tags)}")
 
 
+def merge_release_pr(tag: str, origin: str) -> str:
+    """Commits the version files to a release branch and merges it into main through a pull request.
+
+    Waits for the pull request's CI, squash-merges it and returns the merge commit. main may only
+    change through pull requests, so the release commit cannot be pushed to it.
+    """
+    branch = f"release/{tag}"
+    title = f"chore: release {tag}"
+    run("git", "switch", "-q", "-c", branch)
+    url = None
+    try:
+        run("git", "commit", "-q", "-m", title, "--", *VERSION_FILES)
+        run("git", "push", "-q", "-u", "origin", branch)
+        url = run(
+            "gh", "pr", "create", "-R", origin, "--base", "main", "--head", branch,
+            "--title", title, "--body", f"Release {tag}, opened by `uv run release prod`.",
+        )
+        print(f"Opened {url}")
+        watch(find_run(origin, CI_WORKFLOW, "--branch", branch, "--event", "pull_request"), origin)
+        run("gh", "pr", "merge", url, "-R", origin, "--squash", "--subject", title, "--body", "")
+        sha = run("gh", "pr", "view", url, "-R", origin, "--json", "mergeCommit", "-q", ".mergeCommit.oid")
+    except ReleaseError as e:
+        if url:
+            raise ReleaseError(
+                f"{e}\nThe release pull request {url} is still open. Merge it and tag the merge "
+                f"commit, or close it with: gh pr close {url} --delete-branch"
+            ) from None
+        raise
+    finally:
+        run("git", "switch", "-q", "main")
+    print(f"Merged {url} as {sha[:7]}")
+    run("git", "push", "-q", "origin", "--delete", branch)
+    run("git", "branch", "-q", "-D", branch)
+    run("git", "pull", "-q", "--ff-only", "origin", "main")
+    return sha
+
+
 def release(kind: str, args: argparse.Namespace) -> None:
     """Runs a dev or prod release."""
     preflight(args.dry_run)
@@ -263,6 +301,8 @@ def release(kind: str, args: argparse.Namespace) -> None:
             print(run("git", "diff", "--", CHANGELOG))
             print(run("git", "diff", "--stat"))
 
+        if kind == "prod":
+            print(f"Pull request: release/{tag} into main, squash-merged once CI passes")
         print(f"Tag: {tag} ({kind}) on {origin}")
         if repo:
             print(f"Deploy: {DEPLOY_WORKFLOW} on {repo} with version={tag} dev={kind == 'dev'} force={args.force}")
@@ -270,23 +310,24 @@ def release(kind: str, args: argparse.Namespace) -> None:
             print(f"Dev tags to delete after success: {', '.join(stale)}")
 
         if args.dry_run:
-            print("Dry run, reverting and stopping before commit, tag and push")
+            print("Dry run, reverting and stopping before commit, pull request, tag and push")
             return
         if not confirm("Push and deploy?", args.yes):
             print("Stopped")
             return
 
         if kind == "prod":
-            run("git", "commit", "-q", "-m", f"chore: release {tag}", "--", *VERSION_FILES)
-        run("git", "tag", tag)
+            sha = merge_release_pr(tag, origin)
+            run("git", "tag", tag, sha)
+        else:
+            run("git", "tag", tag)
         edited = False
     finally:
         if edited:
             run("git", "checkout", "--", *VERSION_FILES)
 
-    refs = ["main", tag] if kind == "prod" else [tag]
-    run("git", "push", "--atomic", "origin", *refs)
-    print(f"Pushed {' and '.join(refs)}")
+    run("git", "push", "-q", "origin", tag)
+    print(f"Pushed {tag}")
 
     watch(find_run(origin, CI_WORKFLOW, "--branch", tag), origin)
 

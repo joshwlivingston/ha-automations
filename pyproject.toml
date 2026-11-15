@@ -1,6 +1,6 @@
 [project]
 name = "ha-automations"
-version = "0.1.0.9011"
+version = "0.1.0.9012"
 description = "Home automations running on AppDaemon"
 license = "MIT"
 requires-python = ">=3.12"
