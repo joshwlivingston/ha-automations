@@ -2,8 +2,7 @@ name: Docs
 on:
   push:
     branches: [main]
-  # A deleted tag drops its version. release prod deletes old dev tags after the GitHub release
-  # exists, so this run also attaches the new release's docs.
+  # A deleted tag drops its version, e.g. the old dev tags release prod deletes.
   delete:
   workflow_dispatch:
 
@@ -13,7 +12,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Branch deletes skip the build, so they get a group of their own and never cancel a real run.
+  group: ${{ github.event_name == 'delete' && github.event.ref_type != 'tag' && format('skip-{0}', github.run_id) || 'pages' }}
   cancel-in-progress: true
 
 jobs:
