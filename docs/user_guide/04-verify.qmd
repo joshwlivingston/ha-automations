@@ -14,19 +14,19 @@ ssh root@homeassistant.local ha addons logs a0d7b954_appdaemon
 Each app logs one line when it loads, with its light, levels, start triggers and test event. For example:
 
 ```
-INFO bedroom_sunrise: Controls light.bedroom_lamp from sun -6 to 0°, off at 4°. Starts daily at 05:45:00; test with event bedroom_sunrise_start.
+INFO bedroom_sunrise: load       init                 light=light.bedroom_lamp detector=sun from_level=-6° to_level=0° off_level=4° brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
 ```
 
-After that, the app logs each start check, each brightness change and why nothing happened when a start check does nothing. A morning looks like:
+After that, the app logs each start trigger, each brightness change and why nothing happened when a start trigger does nothing. A morning looks like:
 
 ```
-INFO bedroom_sunrise: Start check (daily at 05:45:00).
-INFO bedroom_sunrise: Armed at -9.8°. Ramp runs to 0.
-INFO bedroom_sunrise: light.bedroom_lamp to 5%, sun at -9.8°, 0% of the way.
-INFO bedroom_sunrise: light.bedroom_lamp to 31%, sun at -3.0°, 70% of the way.
-INFO bedroom_sunrise: Ramp done; sun at 1.1°.
-INFO bedroom_sunrise: light.bedroom_lamp off over 300 s; sun at 4.0°.
-INFO bedroom_sunrise: Disarmed until the next start.
+INFO bedroom_sunrise: check      start trigger        daily at 05:45:00
+INFO bedroom_sunrise: arm        short of from_level  sun=-9.8° to_level=0° off_level=4°
+INFO bedroom_sunrise: set        ramp 0%              light.bedroom_lamp 5% sun=-9.8° transition=5s
+INFO bedroom_sunrise: set        ramp 70%             light.bedroom_lamp 31% sun=-3.0° transition=60s
+INFO bedroom_sunrise: ramp done  past to_level        sun=1.1° to_level=0°
+INFO bedroom_sunrise: off        reached off_level    light.bedroom_lamp sun=4.0° off_level=4° transition=300s
+INFO bedroom_sunrise: disarm     reached off_level    until next start trigger
 ```
 
 Sun updates that change nothing are logged at DEBUG.
@@ -37,4 +37,4 @@ A settings mistake shows up here as a validation error naming the bad setting.
 
 Each app listens for the event `<app name>_start`. In Home Assistant, go to **Developer Tools > Events**, enter the event type, for example `bedroom_sunrise_start`, and select **Fire event**.
 
-This runs the same check as the app's start trigger. During the fade window the light changes. Outside it the log says why, for example `Not armed: sun at 12.0°, already past -6.`, which still confirms the app is running.
+This runs the same check as the app's start trigger. During the fade window the light changes. Outside it the log says why, for example `skip arm   past from_level  sun=12.0° from_level=-6°`, which still confirms the app is running.

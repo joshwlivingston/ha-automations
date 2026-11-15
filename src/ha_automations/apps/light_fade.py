@@ -41,6 +41,7 @@ from ha_automations.fades import (
     MIN_BRIGHTNESS,
     OFF_TRANSITION,
     LightFade,
+    line,
 )
 from ha_automations.lights import HassLight
 from ha_automations.triggers import Event, Trigger, TriggerConfig
@@ -91,12 +92,21 @@ class LightFadeApp(hass.Hass):
 
     def _summary(self, s: LightFadeSettings) -> str:
         """One line saying what this app controls and when it starts."""
-        d = self.fade.detector
-        line = f"Controls {s.light} from {d.label} {s.from_level:g} to {s.to_level:g}{d.unit}"
+        u = self.fade.detector.unit
+        fields = [
+            f"light={s.light}",
+            f"detector={self.fade.detector.label}",
+            f"from_level={s.from_level:g}{u}",
+            f"to_level={s.to_level:g}{u}",
+        ]
         if s.off_level is not None:
-            line += f", off at {s.off_level:g}{d.unit}"
-        starts = f"Starts {' or '.join(map(str, s.start))}" if s.start else "Always armed"
-        return f"{line}. {starts}; test with event {self.event}."
+            fields.append(f"off_level={s.off_level:g}{u}")
+        fields += [
+            f"brightness={s.min_brightness}%..{s.max_brightness}%",
+            f'start="{", ".join(map(str, s.start))}"' if s.start else "start=none",
+            f"test_event={self.event}",
+        ]
+        return line("load", "init", " ".join(fields))
 
     @property
     def event(self) -> str:
@@ -104,5 +114,5 @@ class LightFadeApp(hass.Hass):
         return self.name + EVENT_SUFFIX
 
     def _start(self, trigger: Trigger):
-        self.log(f"Start check ({trigger}).")
+        self.log(line("check", "start trigger", str(trigger)))
         self.fade.start()

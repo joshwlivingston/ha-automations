@@ -34,6 +34,15 @@ def _quiet(msg: str) -> None:
     pass
 
 
+ACTION_WIDTH = 9          # longest log action
+REASON_WIDTH = 19         # longest log reason
+
+
+def line(action: str, reason: str, detail: str = "") -> str:
+    """One log line with action, reason and detail in aligned columns."""
+    return f"{action:<{ACTION_WIDTH}}  {reason:<{REASON_WIDTH}}  {detail}".rstrip()
+
+
 @dataclass
 class LightFade:
     """Brighten a light as the level moves from from_level to to_level.
@@ -87,15 +96,19 @@ class LightFade:
         return rising is None or rising == self.rising
 
     def _at(self, level: float) -> str:
-        """`level` with the detector's label and unit, e.g. sun at -4.3°."""
-        return f"{self.detector.label} at {level:.1f}{self.detector.unit}"
+        """A reading as a log field, e.g. sun=-4.3°."""
+        return f"{self.detector.label}={level:.1f}{self.detector.unit}"
+
+    def _u(self, name: str, level: float) -> str:
+        """A configured level as a log field, e.g. from_level=-6°."""
+        return f"{name}={level:g}{self.detector.unit}"
 
     def _skip(self, level: float | None, rising: bool | None) -> str | None:
         """Why a reading is unusable, or None if it is usable."""
         if level is None:
             return f"no {self.detector.label} reading"
         if not self._with_fade(rising):
-            return f"{self.detector.label} is {'rising' if rising else 'falling'}"
+            return f"{self.detector.label} {'rising' if rising else 'falling'}"
         return None
 
     def start(self) -> bool:
@@ -108,15 +121,18 @@ class LightFade:
         level, rising = self.detector.read()
         self.ramp_from = None
         if reason := self._skip(level, rising):
-            self.log(f"Not armed: {reason}.")
+            self.log(line("skip arm", reason, self._at(level) if level is not None else ""))
             return False
         assert level is not None
         if not self._ahead(self.from_level, level):
-            self.log(f"Not armed: {self._at(level)}, already past {self.from_level:g}.")
+            detail = f"{self._at(level)} {self._u('from_level', self.from_level)}"
+            self.log(line("skip arm", "past from_level", detail))
             return False
         self.ramp_from = level
         self._kept = False
-        self.log(f"Armed at {level:.1f}{self.detector.unit}. Ramp runs to {self.to_level:g}.")
+        off = f" {self._u('off_level', self.off_level)}" if self.off_level is not None else ""
+        detail = f"{self._at(level)} {self._u('to_level', self.to_level)}{off}"
+        self.log(line("arm", "short of from_level", detail))
         return self.update(ON_TRANSITION, explain=True)
 
     def update(self, transition: float = RAMP_TRANSITION, explain: bool = False) -> bool:
@@ -127,31 +143,36 @@ class LightFade:
         noop = self.log if explain else self.debug
         level, rising = self.detector.read()
         if self.ramp_from is None:
-            noop("Ignored: not armed.")
+            noop(line("skip", "not armed"))
             return False
         if reason := self._skip(level, rising):
-            noop(f"Ignored: {reason}.")
+            noop(line("skip", reason, self._at(level) if level is not None else ""))
             return False
         assert level is not None
         if self.off_level is not None and not self._ahead(self.off_level, level):
             self._in_ramp = False
+            at = f"{self._at(level)} {self._u('off_level', self.off_level)}"
             if self.light.brightness_pct() > 0:
                 self.light.turn_off(self.off_transition)
-                self.log(f"{self.light} off over {self.off_transition:g} s; {self._at(level)}.")
+                detail = f"{self.light} {at} transition={self.off_transition:g}s"
+                self.log(line("off", "reached off_level", detail))
             else:
-                noop(f"{self.light} already off; {self._at(level)}.")
+                noop(line("skip", "already off", f"{self.light} {at}"))
             if self.triggered:
                 self.ramp_from = None
-                self.log("Disarmed until the next start.")
+                self.log(line("disarm", "reached off_level", "until next start trigger"))
             return True
         end = self.to_level + (END_MARGIN if self.rising else -END_MARGIN)
         if self._ahead(self.ramp_from, level) or self._ahead(level, end):
             if not self._ahead(level, end):
-                noop(f"Ignored: {self._at(level)}, short of {self.ramp_from:g}.")
+                detail = f"{self._at(level)} {self._u('ramp_from', self.ramp_from)}"
+                noop(line("skip", "short of ramp_from", detail))
             elif self._in_ramp:
-                self.log(f"Ramp done; {self._at(level)}.")
+                detail = f"{self._at(level)} {self._u('to_level', self.to_level)}"
+                self.log(line("ramp done", "past to_level", detail))
             else:
-                noop(f"Ignored: {self._at(level)}, past {self.to_level:g}.")
+                detail = f"{self._at(level)} {self._u('to_level', self.to_level)}"
+                noop(line("skip", "past to_level", detail))
             self._in_ramp = False
             return False
         self._in_ramp = True
@@ -159,10 +180,13 @@ class LightFade:
         pct = brightness_at(p, self.min_brightness, self.max_brightness)
         if brighten_only(self.light, pct, transition):
             self._kept = False
-            self.log(f"{self.light} to {pct}%, {self._at(level)}, {p:.0%} of the way.")
+            detail = f"{self.light} {pct}% {self._at(level)} transition={transition:g}s"
+            self.log(line("set", f"ramp {p:.0%}", detail))
         elif not self._kept and (now := self.light.brightness_pct()) > pct:
             self._kept = True
-            self.log(f"Kept {self.light} at {now}%; fade wanted {pct}%. Fades never dim.")
+            detail = f"{self.light} {now}% target={pct}% {self._at(level)}"
+            self.log(line("keep", "above target", detail))
         else:
-            noop(f"Left {self.light} alone; fade wants {pct}%.")
+            detail = f"{self.light} {self.light.brightness_pct()}% target={pct}% {self._at(level)}"
+            noop(line("skip", "at or above target", detail))
         return True
