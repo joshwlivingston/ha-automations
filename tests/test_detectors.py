@@ -1,6 +1,7 @@
 import pytest
+from pydantic import ValidationError
 
-from ha_automations.detectors import SunDetector, make_detector
+from ha_automations.detectors import Sun, SunDetector
 
 
 class FakeApp:
@@ -30,10 +31,10 @@ def test_sun_listen_calls_back_on_elevation_change():
     assert calls == [1]
 
 
-def test_make_detector_default_is_sun():
-    assert isinstance(make_detector(FakeApp()), SunDetector)
+def test_sun_spec_builds_sun_detector():
+    assert isinstance(Sun.model_validate({"kind": "sun"}).build(FakeApp()), SunDetector)
 
 
-def test_make_detector_unknown():
-    with pytest.raises(ValueError, match="unknown detector"):
-        make_detector(FakeApp(), "nope")
+def test_unknown_detector_kind():
+    with pytest.raises(ValidationError):
+        Sun.model_validate({"kind": "nope"})

@@ -1,7 +1,8 @@
 """Brighten a light as a detector's light level moves between two levels.
 
 The fade rises or falls depending on whether to_level is above or below
-from_level. Subclasses may set DEFAULTS, DEFAULT_START and DETECTOR.
+from_level. Subclasses may set Settings to a LightFadeSettings subclass with
+other defaults.
 
 Usage
 -----
@@ -9,7 +10,8 @@ bedroom_fade:
     module: light_fade
     class: LightFadeApp
     light: light.bedroom_lamp
-    detector: sun
+    detector:
+      kind: sun
     from_level: -6
     to_level: 0
     off_level: 4
@@ -18,75 +20,85 @@ bedroom_fade:
 
 Settings
 --------
-setting          default     meaning
-light            required    light entity to control
-detector         sun         light level source, a key of detectors.DETECTORS;
-                             not settable when the subclass sets DETECTOR
-start            []          trigger specs that arm the fade (see triggers.py); empty means always armed
-from_level       required    level where brightening starts
-to_level         required    level where max_brightness is reached
-off_level        unset       level where the light turns off; unset means never
-min_brightness   5           starting brightness, percent
-max_brightness   50          brightness at to_level, percent
-off_transition   300         fade-out length, seconds
+setting          default       meaning
+light            required      light entity to control
+detector         required      light level source, a detectors.DetectorConfig
+start            []            triggers that arm the fade (see triggers.py); empty means always armed
+from_level       required      level where brightening starts
+to_level         required      level where max_brightness is reached
+off_level        unset         level where the light turns off; unset means never
+min_brightness   5             starting brightness, percent
+max_brightness   50            brightness at to_level, percent
+off_transition   300           fade-out length, seconds
 
-Settings not given come from the subclass DEFAULTS, then from LightFade.
+Unknown settings are an error.
 
 Testing
 -------
 Settings > Tools > Events, Event type `<app name>` plus EVENT_SUFFIX > Fire event.
 This runs the same check as a start trigger.
 """
-from typing import Any, ClassVar
+from typing import ClassVar
 
 import appdaemon.plugins.hass.hassapi as hass
+from appdaemon.models.config.app import AppConfig
+from pydantic import Field
 
-from ha_automations.detectors import DEFAULT_DETECTOR, make_detector
-from ha_automations.fades import LightFade
+from ha_automations.config import Config
+from ha_automations.detectors import DetectorConfig
+from ha_automations.fades import (
+    MAX_BRIGHTNESS,
+    MIN_BRIGHTNESS,
+    OFF_TRANSITION,
+    LightFade,
+)
 from ha_automations.lights import HassLight
-from ha_automations.settings import settings_for
-from ha_automations.triggers import EventTrigger, make_triggers
+from ha_automations.triggers import Event, Trigger, TriggerConfig
 
-# LightFade fields not read from settings.
-NOT_SETTINGS = ("detector", "light", "triggered")
-REQUIRED = ("from_level", "to_level")
+# Keys AppDaemon itself puts in app args.
+APPDAEMON_KEYS = frozenset(f.alias or name for name, f in AppConfig.model_fields.items())
 EVENT_SUFFIX = "_start"
 
 
+class LightFadeSettings(Config):
+    light: str
+    detector: DetectorConfig
+    start: tuple[TriggerConfig, ...] = ()
+    from_level: float
+    to_level: float
+    off_level: float | None = None
+    min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100)
+    max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100)
+    off_transition: float = Field(OFF_TRANSITION, ge=0)
+
+
 class LightFadeApp(hass.Hass):
-    DEFAULTS: ClassVar[dict[str, Any]] = {}
-    DEFAULT_START: ClassVar[list[dict[str, Any]]] = []
-    DETECTOR: ClassVar[str | None] = None
+    Settings: ClassVar[type[LightFadeSettings]] = LightFadeSettings
 
     def initialize(self):
-        a = self.args
-        start = a.get("start", self.DEFAULT_START)
-        settings = settings_for(LightFade, {**self.DEFAULTS, **a}, exclude=NOT_SETTINGS)
-        if missing := [k for k in REQUIRED if k not in settings]:
-            raise ValueError(f"{self.name}: missing settings {missing}")
+        args = {k: v for k, v in self.args.items() if k not in APPDAEMON_KEYS}
+        s = self.Settings.model_validate(args)
         self.fade = LightFade(
-            detector=make_detector(self, self._detector_name()),
-            light=HassLight(self, a["light"]),
-            triggered=bool(start),
-            **settings,
+            detector=s.detector.build(self),
+            light=HassLight(self, s.light),
+            from_level=s.from_level,
+            to_level=s.to_level,
+            off_level=s.off_level,
+            min_brightness=s.min_brightness,
+            max_brightness=s.max_brightness,
+            off_transition=s.off_transition,
+            triggered=bool(s.start),
         )
-        for trigger in [*make_triggers(self, start), EventTrigger(self, self.event)]:
-            trigger.listen(self._start)
+        triggers: list[Trigger] = [*s.start, Event(event=self.event)]
+        for trigger in triggers:
+            trigger.listen(self, self._start)
         self.fade.detector.listen(self.fade.update)
-        f = self.fade
-        self.log(f"{self.name} loaded: {a['light']}, {f.from_level} to {f.to_level}, start {start or 'always'}, test event {self.event}")
+        self.log(f"{self.name} loaded: {s.light}, {s.from_level} to {s.to_level}, start {s.start or 'always'}, test event {self.event}")
 
     @property
     def event(self) -> str:
         """Event that runs a start check for this app instance."""
         return self.name + EVENT_SUFFIX
-
-    def _detector_name(self) -> str:
-        if self.DETECTOR is None:
-            return self.args.get("detector", DEFAULT_DETECTOR)
-        if "detector" in self.args:
-            raise ValueError(f"{self.name}: detector is fixed to {self.DETECTOR!r}")
-        return self.DETECTOR
 
     def _start(self):
         if not self.fade.start():

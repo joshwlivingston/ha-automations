@@ -1,11 +1,9 @@
 import pytest
+from pydantic import TypeAdapter, ValidationError
 
-from ha_automations.triggers import (
-    DailyTrigger,
-    EventTrigger,
-    make_trigger,
-    make_triggers,
-)
+from ha_automations.triggers import Daily, Event, TriggerConfig
+
+TRIGGERS = TypeAdapter(list[TriggerConfig])
 
 
 class FakeApp:
@@ -22,7 +20,7 @@ class FakeApp:
 
 def test_daily_trigger():
     app, calls = FakeApp(), []
-    DailyTrigger(app, "05:45:00").listen(lambda: calls.append(1))
+    Daily(daily="05:45:00").listen(app, lambda: calls.append(1))
     callback, time = app.daily[0]
     assert time == "05:45:00"
     callback()
@@ -31,24 +29,19 @@ def test_daily_trigger():
 
 def test_event_trigger():
     app, calls = FakeApp(), []
-    EventTrigger(app, "alarm").listen(lambda: calls.append(1))
+    Event(event="alarm").listen(app, lambda: calls.append(1))
     callback, event = app.events[0]
     assert event == "alarm"
     callback("alarm", {})
     assert calls == [1]
 
 
-def test_make_triggers():
-    triggers = make_triggers(FakeApp(), [{"daily": "06:00:00"}, {"event": "alarm"}])
-    assert isinstance(triggers[0], DailyTrigger) and triggers[0].time == "06:00:00"
-    assert isinstance(triggers[1], EventTrigger) and triggers[1].event == "alarm"
+def test_parse_triggers():
+    triggers = TRIGGERS.validate_python([{"daily": "06:00:00"}, {"event": "alarm"}])
+    assert triggers == [Daily(daily="06:00:00"), Event(event="alarm")]
 
 
-def test_make_trigger_unknown():
-    with pytest.raises(ValueError, match="unknown trigger"):
-        make_trigger(FakeApp(), {"nope": 1})
-
-
-def test_make_trigger_bad_spec():
-    with pytest.raises(ValueError, match="one-key dict"):
-        make_trigger(FakeApp(), {"daily": "06:00:00", "event": "alarm"})
+@pytest.mark.parametrize("spec", [{"nope": 1}, {"daily": "06:00:00", "event": "alarm"}])
+def test_bad_trigger(spec):
+    with pytest.raises(ValidationError):
+        TRIGGERS.validate_python([spec])

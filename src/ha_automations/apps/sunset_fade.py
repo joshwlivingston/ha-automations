@@ -25,11 +25,17 @@ Testing
 -------
 Settings > Tools > Events, Event type `<app name>_start`, e.g. `living_room_sunset_start` > Fire event
 """
-from typing import Any, ClassVar
+from typing import ClassVar
 
-from ha_automations.apps.light_fade import LightFadeApp
+from ha_automations.apps.light_fade import LightFadeApp, LightFadeSettings
+from ha_automations.detectors import Sun
+
+
+class SunsetSettings(LightFadeSettings):
+    detector: Sun = Sun()
+    from_level: float = 6
+    to_level: float = -6
 
 
 class SunsetFade(LightFadeApp):
-    DETECTOR = "sun"
-    DEFAULTS: ClassVar[dict[str, Any]] = {"from_level": 6, "to_level": -6}
+    Settings: ClassVar[type[LightFadeSettings]] = SunsetSettings
