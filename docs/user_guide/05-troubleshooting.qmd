@@ -26,6 +26,7 @@ Fire the app's test event and read the log. See [Verify](verify.qmd).
 
 ### Light apps
 
-- `outside fade, nothing to do` means the sun is outside the app's levels right now, or moving the wrong way.
+- `Not armed: ...` or `Ignored: ...` gives the reason: the sun is past the app's levels, outside them, or moving the wrong way.
+- `Kept light.x at 80%; fade wanted 31%. Fades never dim.` means the light was already brighter, usually from a manual change. Fades never dim.
 - Sunrise Fade arms only if it is still dark at its `start` time. In summer, set an earlier `start`.
 - Check the entity id in `light`, and that the light supports brightness.

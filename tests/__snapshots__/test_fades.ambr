@@ -1,0 +1,63 @@
+# serializer version: 1
+# name: test_sunrise_morning_log
+  '''
+  > sun(-12)
+    DEBUG Ignored: not armed.
+  > start()
+    INFO  Armed at -12.0°. Ramp runs to 0.
+    INFO  light.x to 5%, sun at -12.0°, 0% of the way.
+  > sun(-8)
+    INFO  light.x to 14%, sun at -8.0°, 33% of the way.
+  > sun(-4)
+    INFO  light.x to 29%, sun at -4.0°, 67% of the way.
+  > manual(80)
+  > sun(-3.9)
+    INFO  Kept light.x at 80%; fade wanted 30%. Fades never dim.
+  > sun(-2)
+    DEBUG Left light.x alone; fade wants 39%.
+  > sun(0)
+    DEBUG Left light.x alone; fade wants 50%.
+  > sun(0.5)
+    DEBUG Left light.x alone; fade wants 50%.
+  > sun(1.5)
+    INFO  Ramp done; sun at 1.5°.
+  > sun(2)
+    DEBUG Ignored: sun at 2.0°, past 0.
+  > sun(4.2)
+    INFO  light.x off over 300 s; sun at 4.2°.
+    INFO  Disarmed until the next start.
+  > sun(6)
+    DEBUG Ignored: not armed.
+  '''
+# ---
+# name: test_sunrise_start_skip_log
+  '''
+  # sun at -2, rising=True
+  > start()
+    INFO  Not armed: sun at -2.0°, already past -6.
+  # sun at -10, rising=False
+  > start()
+    INFO  Not armed: sun is falling.
+  # sun at None, rising=None
+  > start()
+    INFO  Not armed: no sun reading.
+  '''
+# ---
+# name: test_sunset_evening_log
+  '''
+  > start()
+    INFO  Ignored: sun is rising.
+  > sun(12, rising=False)
+    DEBUG Ignored: sun at 12.0°, short of 6.
+  > sun(6)
+    INFO  light.x to 5%, sun at 6.0°, 0% of the way.
+  > sun(0)
+    INFO  light.x to 21%, sun at 0.0°, 50% of the way.
+  > sun(-6)
+    INFO  light.x to 50%, sun at -6.0°, 100% of the way.
+  > sun(-6.5)
+    DEBUG Left light.x alone; fade wants 50%.
+  > sun(-8)
+    INFO  Ramp done; sun at -8.0°.
+  '''
+# ---

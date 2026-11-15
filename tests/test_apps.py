@@ -12,8 +12,8 @@ def build(cls, args, app_name="test"):
     class Stub(cls):
         name = app_name  # pyright: ignore[reportAssignmentType]
 
-        def log(self, *a, **k):
-            pass
+        def log(self, msg, level="INFO"):
+            self.logs.append(msg)
 
         def run_daily(self, callback, time):
             self.daily.append(time)
@@ -26,7 +26,7 @@ def build(cls, args, app_name="test"):
 
     app = Stub.__new__(Stub)
     app.args = args
-    app.daily, app.events = [], []
+    app.daily, app.events, app.logs = [], [], []
     app.initialize()
     return app
 
@@ -47,7 +47,15 @@ def test_sunset_defaults():
 
 
 def test_ignores_appdaemon_keys():
-    app = build(SunsetFade, {"name": "test", "module": "sunset_fade", "class": "SunsetFade", "light": "light.x"})
+    app = build(
+        SunsetFade,
+        {
+            "name": "test",
+            "module": "sunset_fade",
+            "class": "SunsetFade",
+            "light": "light.x",
+        },
+    )
     assert app.fade.from_level == 6
 
 
@@ -70,11 +78,40 @@ def test_generic_from_settings():
         "start": [{"event": "alarm"}],
     }
     app = build(LightFadeApp, args, app_name="desk")
-    assert (app.fade.from_level, app.fade.to_level, app.fade.triggered) == (10, 200, True)
+    assert (app.fade.from_level, app.fade.to_level, app.fade.triggered) == (
+        10,
+        200,
+        True,
+    )
     assert app.events == ["alarm", "desk_start"]
 
 
 @pytest.mark.parametrize("app", [LightFadeApp, SunriseFade, SunsetFade])
 def test_settings_have_descriptions(app):
-    missing = [name for name, f in app.Settings.model_fields.items() if not f.description]
+    missing = [
+        name for name, f in app.Settings.model_fields.items() if not f.description
+    ]
     assert missing == []
+
+
+def test_summary_lines(snapshot):
+    cases = [
+        (SunriseFade, {"light": "light.x"}, "bedroom_sunrise"),
+        (SunsetFade, {"light": "light.y"}, "living"),
+        (
+            LightFadeApp,
+            {
+                "light": "light.z",
+                "detector": {"kind": "sun"},
+                "from_level": 10,
+                "to_level": 20,
+                "start": [{"event": "alarm"}, {"daily": "06:00:00"}],
+            },
+            "desk",
+        ),
+    ]
+    lines = []
+    for cls, args, name in cases:
+        lines.append(f"> {cls.__name__} {name}: {args}")
+        lines += [f"  {m}" for m in build(cls, args, app_name=name).logs]
+    assert "\n".join(lines) == snapshot

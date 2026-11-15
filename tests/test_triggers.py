@@ -45,3 +45,8 @@ def test_parse_triggers():
 def test_bad_trigger(spec):
     with pytest.raises(ValidationError):
         TRIGGERS.validate_python([spec])
+
+
+def test_trigger_str():
+    assert str(Daily(daily="05:45:00")) == "daily at 05:45:00"
+    assert str(Event(event="alarm")) == "event alarm"

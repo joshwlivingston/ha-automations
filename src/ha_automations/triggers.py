@@ -21,6 +21,9 @@ class Daily(Config):
 
     daily: str
 
+    def __str__(self) -> str:
+        return f"daily at {self.daily}"
+
     def listen(self, app, callback: Callable[[], object]) -> None:
         def on_time(**kwargs):
             callback()
@@ -32,6 +35,9 @@ class Event(Config):
     """Fires when the Home Assistant event `event` is fired."""
 
     event: str
+
+    def __str__(self) -> str:
+        return f"event {self.event}"
 
     def listen(self, app, callback: Callable[[], object]) -> None:
         def on_event(event_type, data, **kwargs):

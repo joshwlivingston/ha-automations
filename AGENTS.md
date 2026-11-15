@@ -1,6 +1,7 @@
 # AGENTS.md
 
 - Check: `uv run pytest && uv run ruff check . && uv run pyright`
+- Snapshots (syrupy) live in `tests/__snapshots__/` and are committed. Accept changes with `uv run pytest --snapshot-update`, then review the diff.
 - Logic goes in `src/ha_automations/`; `deploy/appdaemon/apps/` holds only shims; `apps.yaml` lives in a private config repo.
 - Release: bump `pyproject.toml` version, tag `vX.Y.Z`, push tags. CI deploys.
 - Commits: one-line conventional commits, no AI trailers.

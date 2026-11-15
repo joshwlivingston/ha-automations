@@ -11,6 +11,9 @@ from ha_automations.fades import (
 
 
 class FakeDetector:
+    label = "sun"
+    unit = "°"
+
     def __init__(self, level=None, rising=None):
         self.level = level
         self.rising = rising
@@ -26,6 +29,9 @@ class FakeLight:
     def __init__(self, pct=0):
         self.pct = pct
         self.calls = []
+
+    def __str__(self):
+        return "light.x"
 
     def brightness_pct(self):
         return self.pct
@@ -132,3 +138,81 @@ def test_untriggered_off_level_turns_off_once():
     fade.update()
     fade.update()
     assert light.calls == [("off", fade.off_transition)]
+
+
+def test_brighten_only_reports_change():
+    assert brighten_only(FakeLight(20), 30)
+    assert not brighten_only(FakeLight(50), 30)
+
+
+class Script:
+    """Drives a fade step by step and records a transcript for snapshots.
+
+    Each step writes a `>` line naming the call, then the log lines it caused,
+    indented and tagged INFO or DEBUG.
+    """
+
+    def __init__(self, level, rising, **fade_args):
+        self.det, self.light, self.lines = FakeDetector(level, rising), FakeLight(), []
+        self.fade = LightFade(
+            self.det,
+            self.light,
+            log=lambda m: self.lines.append(f"  INFO  {m}"),
+            debug=lambda m: self.lines.append(f"  DEBUG {m}"),
+            **fade_args,
+        )
+
+    def start(self):
+        self.lines.append("> start()")
+        self.fade.start()
+
+    def sun(self, level, rising=None):
+        """Move the sun and run the update its state listener would."""
+        self.det.level = level
+        if rising is not None:
+            self.det.rising = rising
+        self.lines.append(f"> sun({level}{'' if rising is None else f', rising={rising}'})")
+        self.fade.update()
+
+    def manual(self, pct):
+        """Set the light by hand; logs nothing."""
+        self.light.pct = pct
+        self.lines.append(f"> manual({pct})")
+
+    def __str__(self):
+        return "\n".join(self.lines)
+
+
+SUNRISE = {"from_level": -6, "to_level": 0, "off_level": 4, "triggered": True}
+SUNSET = {"from_level": 6, "to_level": -6}
+
+
+def test_sunrise_morning_log(snapshot):
+    s = Script(-12, True, **SUNRISE)
+    s.sun(-12)
+    s.start()
+    s.sun(-8)
+    s.sun(-4)
+    s.manual(80)
+    for level in (-3.9, -2, 0, 0.5, 1.5, 2, 4.2, 6):
+        s.sun(level)
+    assert str(s) == snapshot
+
+
+def test_sunrise_start_skip_log(snapshot):
+    lines = []
+    for level, rising in [(-2, True), (-10, False), (None, None)]:
+        s = Script(level, rising, **SUNRISE)
+        s.lines.append(f"# sun at {level}, rising={rising}")
+        s.start()
+        lines += s.lines
+    assert "\n".join(lines) == snapshot
+
+
+def test_sunset_evening_log(snapshot):
+    s = Script(12, True, **SUNSET)
+    s.start()
+    s.sun(12, rising=False)
+    for level in (6, 0, -6, -6.5, -8):
+        s.sun(level)
+    assert str(s) == snapshot

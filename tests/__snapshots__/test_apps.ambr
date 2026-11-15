@@ -1,0 +1,11 @@
+# serializer version: 1
+# name: test_summary_lines
+  '''
+  > SunriseFade bedroom_sunrise: {'light': 'light.x'}
+    Controls light.x from sun -6 to 0°, off at 4°. Starts daily at 05:45:00; test with event bedroom_sunrise_start.
+  > SunsetFade living: {'light': 'light.y'}
+    Controls light.y from sun 6 to -6°. Always armed; test with event living_start.
+  > LightFadeApp desk: {'light': 'light.z', 'detector': {'kind': 'sun'}, 'from_level': 10, 'to_level': 20, 'start': [{'event': 'alarm'}, {'daily': '06:00:00'}]}
+    Controls light.z from sun 10 to 20°. Starts event alarm or daily at 06:00:00; test with event desk_start.
+  '''
+# ---

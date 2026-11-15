@@ -80,18 +80,29 @@ class LightFadeApp(hass.Hass):
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
             triggered=bool(s.start),
+            log=self.log,
+            debug=lambda msg: self.log(msg, level="DEBUG"),
         )
         triggers: list[Trigger] = [*s.start, Event(event=self.event)]
         for trigger in triggers:
-            trigger.listen(self, self._start)
+            trigger.listen(self, lambda t=trigger: self._start(t))
         self.fade.detector.listen(self.fade.update)
-        self.log(f"{self.name} loaded: {s.light}, {s.from_level} to {s.to_level}, start {s.start or 'always'}, test event {self.event}")
+        self.log(self._summary(s))
+
+    def _summary(self, s: LightFadeSettings) -> str:
+        """One line saying what this app controls and when it starts."""
+        d = self.fade.detector
+        line = f"Controls {s.light} from {d.label} {s.from_level:g} to {s.to_level:g}{d.unit}"
+        if s.off_level is not None:
+            line += f", off at {s.off_level:g}{d.unit}"
+        starts = f"Starts {' or '.join(map(str, s.start))}" if s.start else "Always armed"
+        return f"{line}. {starts}; test with event {self.event}."
 
     @property
     def event(self) -> str:
         """Event that runs a start check for this app instance."""
         return self.name + EVENT_SUFFIX
 
-    def _start(self):
-        if not self.fade.start():
-            self.log(f"{self.name}: outside fade, nothing to do")
+    def _start(self, trigger: Trigger):
+        self.log(f"Start check ({trigger}).")
+        self.fade.start()
