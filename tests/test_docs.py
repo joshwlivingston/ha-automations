@@ -219,3 +219,11 @@ def test_fit_counts_wide_characters_as_two_columns():
     assert fit("ab🎉cd", 4) == "ab🎉"
     assert fit("ab🎉cd", 3) == "ab"
     assert fit("abc", 10) == "abc"
+
+
+@pytest.mark.parametrize("tag", ["v0.1.0.9001", "v1.0", "main"])
+def test_attach_refuses_non_release_tags(tag: str):
+    with pytest.raises(ha_automations_docs.DocsError, match="not a release tag"):
+        ha_automations_docs.attach(
+            ha_automations_docs.parser().parse_args(["attach", tag])
+        )
