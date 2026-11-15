@@ -44,7 +44,7 @@ from ha_automations.fades import (
     line,
 )
 from ha_automations.lights import HassLight
-from ha_automations.triggers import Event, Trigger, TriggerConfig
+from ha_automations.triggers import Daily, Event, Trigger, TriggerConfig
 
 # Keys AppDaemon itself puts in app args.
 APPDAEMON_KEYS = frozenset(f.alias or name for name, f in AppConfig.model_fields.items())
@@ -60,6 +60,9 @@ class LightFadeSettings(Config):
     from_level: float = Field(description="Level where the light turns on")
     to_level: float = Field(description="Level where the light reaches max_brightness")
     off_level: float | None = Field(None, description="Level where the light turns off. Unset means it stays on")
+    off_time: str | None = Field(
+        None, description='Time of day the light turns off, e.g. `"23:00:00"`. Unset means no set time'
+    )
     min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100, description="Brightness when the light turns on, percent")
     max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100, description="Brightness at to_level, percent")
     off_transition: float = Field(OFF_TRANSITION, ge=0, description="How long the light takes to fade off, seconds")
@@ -87,6 +90,8 @@ class LightFadeApp(hass.Hass):
         triggers: list[Trigger] = [*s.start, Event(event=self.event)]
         for trigger in triggers:
             trigger.listen(self, lambda t=trigger: self._start(t))
+        if s.off_time is not None:
+            Daily(daily=s.off_time).listen(self, lambda: self.fade.stop("reached off_time"))
         self.fade.detector.listen(self.fade.update)
         self.log(self._summary(s))
 
@@ -101,6 +106,8 @@ class LightFadeApp(hass.Hass):
         ]
         if s.off_level is not None:
             fields.append(f"off_level={s.off_level:g}{u}")
+        if s.off_time is not None:
+            fields.append(f'off_time="{s.off_time}"')
         fields += [
             f"brightness={s.min_brightness}%..{s.max_brightness}%",
             f'start="{", ".join(map(str, s.start))}"' if s.start else "start=none",

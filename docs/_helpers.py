@@ -50,11 +50,11 @@ def compare_table(apps: list[tuple[str, str, type[LightFadeSettings], str]]) -> 
 
     Use with `output: asis`.
     """
-    print("| App | What it does | `start` | `from_level` | `to_level` | `off_level` |")
-    print("|---|---|---|---|---|---|")
+    print("| App | What it does | `start` | `from_level` | `to_level` | `off_level` | `off_time` |")
+    print("|---|---|---|---|---|---|---|")
     for title, link, cls, summary in apps:
         f = cls.model_fields
-        cells = [_fmt(f[name].default) for name in ("start", "from_level", "to_level", "off_level")]
+        cells = [_fmt(f[name].default) for name in ("start", "from_level", "to_level", "off_level", "off_time")]
         print(f"| [{title}]({link}) | {summary} | {' | '.join(cells)} |")
 
 

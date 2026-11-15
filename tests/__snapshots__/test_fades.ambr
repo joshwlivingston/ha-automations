@@ -1,4 +1,23 @@
 # serializer version: 1
+# name: test_off_time_log
+  '''
+  # sunset, light on after the fade
+  > manual(50)
+  > stop()
+    INFO  off: reached off_time; light.x transition=300s
+  > stop()
+    INFO  skip: already off; light.x
+  # sunrise, armed
+  > start()
+    INFO  arm: short of from_level; sun=-10.0deg to_level=0deg off_level=4deg
+    INFO  set: ramp 0%; light.x 5% sun=-10.0deg transition=5s
+  > stop()
+    INFO  off: reached off_time; light.x transition=300s
+    INFO  disarm: reached off_time; until next start trigger
+  > sun(-4)
+    DEBUG skip: not armed
+  '''
+# ---
 # name: test_sunrise_morning_log
   '''
   > sun(-12)

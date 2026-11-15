@@ -69,6 +69,10 @@ See [Start triggers](start-triggers.qmd).
 | Reaches `off_level`, if set | Fades off over `off_transition` seconds |
 | Moving the other way | Untouched |
 
+| Time | Light |
+|---|---|
+| `off_time`, if set | Fades off over `off_transition` seconds. With `start`, stops the fade until the next trigger. |
+
 ```{python}
 #| echo: false
 #| fig-cap: "A rising fade: from_level -6, to_level 0, off_level 4, no start triggers."
@@ -121,5 +125,6 @@ Fire it during the fade and the light updates. Fire it outside the fade and the 
 - No `start`: runs every day. Restart is safe.
 - With `start`: restart during the fade stops it until the next trigger.
 - No `start`, with `off_level`: turning the light back on after `off_level` lasts only until the next sun update.
+- No `start`, with `off_time`: if the sun is still between `from_level` and `to_level` at `off_time`, the light comes back on at the next sun update.
 - Manual changes: [Manual control](manual-control.qmd).
 - Problems: [Light app troubleshooting](light-troubleshooting.qmd).
