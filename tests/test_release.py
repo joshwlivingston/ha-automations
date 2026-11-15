@@ -2,11 +2,13 @@ import pytest
 
 from ha_automations_release import (
     ReleaseError,
+    config_repo,
     dev_version,
     latest_release,
     prior_dev_tags,
     prod_version,
     release_changelog,
+    repo_from_url,
 )
 
 TAGS = {"v0.1.0", "v0.1.0.9001", "v0.1.0.9002", "v0.1.0.9003"}
@@ -89,3 +91,29 @@ def test_release_changelog_refuses_empty_unreleased():
     text = CHANGELOG.replace("- New thing.\n\n", "")
     with pytest.raises(ReleaseError, match="empty"):
         release_changelog(text, "0.1.1", "2026-11-15")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/fork-owner/ha-automations.git",
+        "https://github.com/fork-owner/ha-automations",
+        "git@github.com:fork-owner/ha-automations.git",
+        "ssh://git@github.com/fork-owner/ha-automations.git",
+    ],
+)
+def test_repo_from_url(url):
+    assert repo_from_url(url) == "fork-owner/ha-automations"
+
+
+def test_repo_from_url_refuses_non_github():
+    with pytest.raises(ReleaseError):
+        repo_from_url("https://gitlab.com/you/ha-automations.git")
+
+
+def test_config_repo_uses_origin_owner(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("CONFIG_REPO", raising=False)
+    assert config_repo("fork-owner/ha-automations") == "fork-owner/ha-automations-config"
+    monkeypatch.setenv("CONFIG_REPO", "someone/config")
+    assert config_repo("fork-owner/ha-automations") == "someone/config"
