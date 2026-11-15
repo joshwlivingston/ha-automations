@@ -70,20 +70,13 @@ The deploy workflow runs in `CONFIG_REPO` (environment or `.deploy.env`), defaul
 ## Docs
 
 ```sh
-uv sync --group docs
-uv run great-docs preview
+uv run docs preview   # build and serve the site at http://127.0.0.1:8000/
+uv run docs build     # build the site into great-docs/_site
 ```
 
 Needs [Quarto](https://quarto.org). Pages are for users: no internals. Settings tables, defaults and charts come from the code through `docs/_helpers.py`.
 
-The site has a version selector. The newest release is the root, each release is under `v/X.Y.Z/`, and `main` is under `v/dev/`. Each push to `main` runs `scripts/build_docs.py`, which builds `main` and any release tag (`vX.Y.Z`) not yet in the `docs-archive` branch, then deploys to GitHub Pages. A release builds once from its own tag and is reused from `docs-archive` after that. To rebuild a release, delete its directory from `docs-archive`.
-
-To build the versioned site locally (releases are cached in `.docs-archive/`):
-
-```sh
-uv run --no-project scripts/build_docs.py
-python3 -m http.server -d great-docs/_site
-```
+The site has a version selector. The newest release is the root, each release is under `v/X.Y.Z/`, and the current commit is under `v/dev/`. Each version builds from its own checkout, so only committed changes show. A build builds `dev` and any release tag (`vX.Y.Z`) whose docs are not in the archive, in parallel, and drops archived docs for deleted tags. Locally the archive is `.docs-archive/`. In CI it is the `docs-archive` branch: each push to `main` builds and deploys to GitHub Pages and pushes newly built releases to that branch. To rebuild a release, delete its directory from the archive. For a quick single-version preview of uncommitted changes, use `uv run great-docs preview`.
 
 ## Commits
 
