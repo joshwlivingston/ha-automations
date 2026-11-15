@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ha_automations.detectors import Sun, SunDetector
+from ha_automations.detectors import Reading, Sun, SunDetector
 
 
 class FakeApp:
@@ -18,7 +18,7 @@ class FakeApp:
 
 def test_sun_read():
     app = FakeApp({"elevation": -3.0, "rising": True})
-    assert SunDetector(app).read() == (-3.0, True)
+    assert SunDetector(app).read() == Reading(-3.0, True)
 
 
 def test_sun_listen_calls_back_on_elevation_change():

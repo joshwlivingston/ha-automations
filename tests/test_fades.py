@@ -1,5 +1,6 @@
 import pytest
 
+from ha_automations.detectors import Reading
 from ha_automations.fades import (
     MAX_BRIGHTNESS,
     MIN_BRIGHTNESS,
@@ -15,7 +16,7 @@ class FakeDetector:
         self.rising = rising
 
     def read(self):
-        return self.level, self.rising
+        return Reading(self.level, self.rising)
 
     def listen(self, callback):
         pass
