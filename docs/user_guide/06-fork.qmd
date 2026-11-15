@@ -5,7 +5,7 @@ guide-section: Get Started
 
 Fork this repo to add or change apps. Then:
 
-1. Set `REPO_URL` in your deploy settings to your fork.
-2. Release from your fork as described in [Releasing](releasing.qmd). The deploy script installs tags from `REPO_URL`.
+1. Point your config repo at your fork. The workflow installs from `<config repo owner>/ha-automations` by default, so a fork under the same account needs nothing. Otherwise set the `PACKAGE_REPO` variable. For manual deploys, set `REPO_URL`.
+2. Release from your fork as described in [Releasing](releasing.qmd). Deploys install tags from your fork.
 
 Pull requests back to this repo are welcome.

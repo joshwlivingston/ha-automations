@@ -19,11 +19,11 @@ bedroom_sunrise:
 
 ## Get started
 
-Your settings go in a separate private config repo. Start from the template: **[ha-automations-config-template](#)** *(coming soon)*. Then follow the [Get Started guide](https://joshwlivingston.github.io/ha-automations/user-guide/overview.html).
+Your settings go in a separate private config repo. Start from the template: **[ha-automations-config-template](https://github.com/joshwlivingston/ha-automations-config-template)**. Its README walks through setup. Then follow the [Get Started guide](https://joshwlivingston.github.io/ha-automations/user-guide/overview.html).
 
 ## Fork it
 
-Fork this repo to add or change apps. Point your config repo at your fork instead of this one.
+Fork this repo to add or change apps. Point your config repo at your fork instead of this one by setting its `PACKAGE_REPO` variable.
 
 ## Issues and pull requests
 

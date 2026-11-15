@@ -3,7 +3,19 @@ title: Config repo
 guide-section: Get Started
 ---
 
-Your settings live in a private repo you own, apart from the code. Start from the template: **ha-automations-config-template** (coming soon).
+Your settings live in a private repo you own, apart from the code. Start from the template:
+
+1. Open [ha-automations-config-template](https://github.com/joshwlivingston/ha-automations-config-template) and select **Use this template > Create a new repository**.
+2. Make it **private**, since `apps.yaml` contains entity IDs.
+
+The template has:
+
+| file | what it is |
+|---|---|
+| `apps.yaml` | your app instances, with an example for each app to edit |
+| `.github/workflows/deploy.yml` | deploys to your Home Assistant box, see [Deploy](deploy.qmd) |
+
+Its README is a step-by-step setup guide.
 
 ## apps.yaml
 
@@ -34,4 +46,4 @@ The app name also names its test event: `bedroom_sunrise` listens for `bedroom_s
 
 ## Deploy settings
 
-The deploy script needs to know where your Home Assistant box is, where your `apps.yaml` is, and which repo to install from. See [Deploy](deploy.qmd).
+The deploy workflow needs to know where your Home Assistant box is and which repo to install from. See [Deploy](deploy.qmd).

@@ -16,7 +16,7 @@ CI runs these on every push and pull request.
 1. Bump `version` in `pyproject.toml`.
 2. Commit, tag `vX.Y.Z` and push the tag.
 
-CI checks that the tag matches the `pyproject.toml` version. Then deploy with `scripts/deploy.sh`. See [Deploy](deploy.qmd).
+CI checks that the tag matches the `pyproject.toml` version. Config repos made from the template pick up the new tag on their next scheduled check. See [Deploy](deploy.qmd).
 
 Commits are one-line conventional commits.
 

@@ -3,14 +3,45 @@ title: Deploy
 guide-section: Get Started
 ---
 
-`scripts/deploy.sh` installs a tagged release on your Home Assistant box. Run it from a checkout of this repo (or your fork):
+Your config repo's workflow runs `scripts/deploy.sh` for you. You can also run the script by hand.
+
+## From your config repo
+
+The template's `.github/workflows/deploy.yml` runs on a self-hosted runner on your home network, since GitHub cannot reach your Home Assistant box. It checks out your config repo and the ha-automations tag, then runs `scripts/deploy.sh`.
+
+### Setup
+
+1. Register a self-hosted runner under **Settings > Actions > Runners**. It needs `git`, `ssh` and `rsync`, and passwordless SSH to the box.
+2. Create an environment named `haos` under **Settings > Environments**.
+3. Set these variables on the environment or the repo:
+
+| variable | default | meaning |
+|---|---|---|
+| `HA_SSH` | required | ssh target, e.g. `root@homeassistant.local` |
+| `PACKAGE_REPO` | `<config repo owner>/ha-automations` | repo to install from; set it to `joshwlivingston/ha-automations` unless you forked |
+| `HA_SSH_PORT` | `22` | ssh port |
+| `RUNNER_LABELS` | `["self-hosted"]` | JSON list of runner labels |
+
+### When it runs
+
+- **Push to `main`:** deploys your `apps.yaml` with the latest tag.
+- **New tag:** a scheduled check picks it up, every 15 minutes during the day and hourly overnight. The crons are in UTC; edit them for your time zone.
+- **Manual:** **Actions > Deploy > Run workflow**, with an optional tag and a *force* box to redeploy when nothing changed.
+
+Each run does nothing if the box already runs that tag with that `apps.yaml`.
+
+To roll back, run it with an older tag, then disable the workflow until a fixed tag is released. Otherwise the next scheduled check reinstalls the latest tag.
+
+## By hand
+
+Run `scripts/deploy.sh` from a checkout of this repo (or your fork):
 
 ```sh
 scripts/deploy.sh          # the version in pyproject.toml
 scripts/deploy.sh v0.4.0   # a specific tag
 ```
 
-## What it does
+### What it does
 
 1. Checks that the tag exists on `REPO_URL`.
 2. Skips the deploy if the box already runs this tag with this `apps.yaml`.
@@ -18,7 +49,7 @@ scripts/deploy.sh v0.4.0   # a specific tag
 4. Sets the add-on's `python_packages` to the tagged package. Other add-on options are kept.
 5. Restarts the add-on so it installs the package and loads `apps.yaml`.
 
-## Settings
+### Settings
 
 Set these in the environment or in a `.deploy.env` file at the repo root.
 

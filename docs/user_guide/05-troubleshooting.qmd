@@ -16,6 +16,8 @@ The AppDaemon log shows a validation error naming the setting.
 - **tag vX.Y.Z not found on REPO_URL. Push it first.** Push the tag, or deploy a tag that exists.
 - **Already running vX.Y.Z with this apps.yaml.** Nothing changed. Set `FORCE=1` to deploy anyway.
 - **no SUPERVISOR_TOKEN in SSH session.** The script must connect through the Advanced SSH & Web Terminal add-on, which provides the token.
+- **Waiting for a runner.** The self-hosted runner is offline. Check **Settings > Actions > Runners** in your config repo.
+- **Resolve version fails.** `PACKAGE_REPO` is wrong or unset. Set it to `joshwlivingston/ha-automations`, or your fork.
 - **APPS_YAML not found.** The path is relative to the root of this repo, not your config repo.
 
 ## The light does nothing

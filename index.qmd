@@ -47,7 +47,7 @@ Need something else? [Light Fade](docs/apps/light-fade.qmd) is the general fade 
 ## Get started
 
 1. Install the AppDaemon and Advanced SSH & Web Terminal add-ons. See [Overview](user-guide/overview.qmd).
-2. Create your private config repo. See [Config repo](user-guide/config-repo.qmd).
+2. Create your private config repo from the [template](https://github.com/joshwlivingston/ha-automations-config-template). See [Config repo](user-guide/config-repo.qmd).
 3. Add an app to `apps.yaml`:
 
    ```yaml
@@ -57,5 +57,5 @@ Need something else? [Light Fade](docs/apps/light-fade.qmd) is the general fade 
      light: light.bedroom_lamp
    ```
 
-4. Deploy a release. See [Deploy](user-guide/deploy.qmd).
+4. Push to `main` and the config repo's workflow deploys the latest release. See [Deploy](user-guide/deploy.qmd).
 5. Check it loaded and fire a test event. See [Verify](user-guide/verify.qmd).
