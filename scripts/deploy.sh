@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Deploy a tagged release to Home Assistant OS
 #
+# Release tags are vX.Y.Z. Dev tags are vX.Y.Z.9xxx and deploy only with DEV=1
+#
 # Steps:
-#   1. Check the tag exists on REPO_URL
+#   1. Check the tag is a release tag (or a dev tag with DEV=1) and exists on REPO_URL
 #   2. Skip if the HAOS box already runs this tag with this apps.yaml
 #   3. Copy the shims in deploy/appdaemon/apps/ and your apps.yaml to the AppDaemon add-on
 #   4. Set the add-on's python_packages to the tagged package. Other options are kept
@@ -10,7 +12,7 @@
 #
 # Requires the "Advanced SSH & Web Terminal" add-on with key auth
 #
-# Usage: scripts/deploy.sh [vX.Y.Z]
+# Usage: scripts/deploy.sh [vX.Y.Z | vX.Y.Z.9xxx]
 # The tag defaults to the version in pyproject.toml
 #
 # Settings, read from the environment or .deploy.env:
@@ -20,6 +22,7 @@
 #   HA_SSH_PORT   ssh port (default 22)
 #   ADDON_SLUG    AppDaemon add-on slug (default a0d7b954_appdaemon)
 #   APPS_DIR      apps directory on the HAOS box (default /addon_configs/$ADDON_SLUG/apps)
+#   DEV           set to 1 to allow dev tags (vX.Y.Z.9xxx)
 #   FORCE         set to 1 to deploy even if the HAOS box already runs this tag and apps.yaml
 #   NO_RESTART    set to 1 to skip the add-on restart; the restart command is printed instead
 set -euo pipefail
@@ -110,6 +113,15 @@ REMOTE
 
 # Stop if apps.yaml is missing, so nothing is copied
 [[ -f "$APPS_YAML" ]] || die "APPS_YAML not found: $APPS_YAML"
+
+# Stop unless the tag is a release tag, or a dev tag with DEV=1
+if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  :
+elif [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.9[0-9]{3}$ ]]; then
+  [[ "${DEV:-}" == 1 ]] || die "$tag is a dev tag. Set DEV=1 to deploy it."
+else
+  die "$tag is not a release tag (vX.Y.Z) or dev tag (vX.Y.Z.9xxx)."
+fi
 
 # Stop if the tag is not on REPO_URL. pip on the HAOS box downloads the tag's tarball, so it
 # would fail after the files were already copied
