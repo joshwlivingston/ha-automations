@@ -11,6 +11,8 @@ dev tags older than the release once everything succeeded.
 
 Settings, read from the environment or .deploy.env:
     CONFIG_REPO   config repo running the deploy workflow (default <owner>/ha-automations-config)
+
+All GitHub calls use the origin remote's repo, so a fork deploys from the fork.
 """
 
 import argparse
@@ -31,6 +33,7 @@ DEPLOY_WORKFLOW = "deploy.yml"
 CI_WORKFLOW = "ci.yml"
 POLL_SECONDS = 5
 POLL_TRIES = 24
+GITHUB_URL = re.compile(r"github\.com[:/](?P<repo>[^/]+/[^/]+?)(?:\.git)?/?$")
 
 
 class ReleaseError(Exception):
@@ -91,6 +94,13 @@ def latest_release(tags: set[str]) -> str | None:
     """Returns the latest vX.Y.Z tag, or None."""
     releases = [t for t in tags if RELEASE.match(t)]
     return max(releases, key=base) if releases else None
+
+
+def repo_from_url(url: str) -> str:
+    """Returns owner/name from a GitHub remote URL."""
+    if m := GITHUB_URL.search(url):
+        return m["repo"]
+    raise ReleaseError(f"origin {url} is not a GitHub repo")
 
 
 # --- Changelog ---
@@ -157,12 +167,16 @@ def setting(name: str) -> str | None:
     return None
 
 
-def config_repo() -> str:
-    """Returns the config repo, from CONFIG_REPO or <owner>/ha-automations-config."""
+def origin_repo() -> str:
+    """Returns owner/name of the origin remote."""
+    return repo_from_url(run("git", "remote", "get-url", "origin"))
+
+
+def config_repo(origin: str) -> str:
+    """Returns the config repo, from CONFIG_REPO or <origin owner>/ha-automations-config."""
     if repo := setting("CONFIG_REPO"):
         return repo
-    owner = run("gh", "repo", "view", "--json", "owner", "--jq", ".owner.login")
-    return f"{owner}/ha-automations-config"
+    return f"{origin.split('/')[0]}/ha-automations-config"
 
 
 def preflight(dry_run: bool) -> None:
@@ -193,27 +207,26 @@ def confirm(question: str, yes: bool) -> bool:
     return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
 
 
-def find_run(repo: str | None, workflow: str, *filters: str, since: str | None = None) -> dict:
-    """Polls for the newest run of workflow matching filters, created at or after since."""
-    cmd = ["gh", "run", "list", "--workflow", workflow, "--json", "databaseId,url,createdAt", "-L", "5"]
-    if repo:
-        cmd += ["-R", repo]
+def find_run(repo: str, workflow: str, *filters: str, since: str | None = None) -> dict:
+    """Polls repo for the newest run of workflow matching filters, created at or after since."""
+    cmd = ["gh", "run", "list", "-R", repo, "--workflow", workflow, "--json", "databaseId,url,createdAt", "-L", "5"]
     cmd += list(filters)
     for _ in range(POLL_TRIES):
         runs = [r for r in json.loads(run(*cmd)) if since is None or r["createdAt"] >= since]
         if runs:
             return runs[0]
         time.sleep(POLL_SECONDS)
-    raise ReleaseError(f"no {workflow} run found{f' on {repo}' if repo else ''}")
+    raise ReleaseError(f"no {workflow} run found on {repo}")
 
 
-def watch(found: dict, repo: str | None = None) -> None:
-    """Waits for a workflow run and raises ReleaseError if it fails."""
+def watch(found: dict, repo: str) -> None:
+    """Waits for a workflow run on repo and raises ReleaseError if it fails."""
     print(f"Watching {found['url']}")
-    cmd = ["gh", "run", "watch", str(found["databaseId"]), "--exit-status", "--interval", str(POLL_SECONDS)]
-    if repo:
-        cmd += ["-R", repo]
-    run(*cmd, capture=False)
+    run(
+        "gh", "run", "watch", str(found["databaseId"]), "-R", repo,
+        "--exit-status", "--interval", str(POLL_SECONDS),
+        capture=False,
+    )
 
 
 def delete_tags(tags: list[str]) -> None:
@@ -235,7 +248,8 @@ def release(kind: str, args: argparse.Namespace) -> None:
     version = dev_version(current, tags) if kind == "dev" else prod_version(current, args.bump, tags)
     tag = f"v{version}"
     stale = prior_dev_tags(tags, version) if kind == "prod" else []
-    repo = None if args.no_deploy else config_repo()
+    origin = origin_repo()
+    repo = None if args.no_deploy else config_repo(origin)
 
     edited = False
     try:
@@ -249,7 +263,7 @@ def release(kind: str, args: argparse.Namespace) -> None:
             print(run("git", "diff", "--", CHANGELOG))
             print(run("git", "diff", "--stat"))
 
-        print(f"Tag: {tag} ({kind})")
+        print(f"Tag: {tag} ({kind}) on {origin}")
         if repo:
             print(f"Deploy: {DEPLOY_WORKFLOW} on {repo} with version={tag} dev={kind == 'dev'} force={args.force}")
         if stale:
@@ -274,7 +288,7 @@ def release(kind: str, args: argparse.Namespace) -> None:
     run("git", "push", "--atomic", "origin", *refs)
     print(f"Pushed {' and '.join(refs)}")
 
-    watch(find_run(None, CI_WORKFLOW, "--branch", tag))
+    watch(find_run(origin, CI_WORKFLOW, "--branch", tag), origin)
 
     if repo:
         since = (datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=10)).strftime(
