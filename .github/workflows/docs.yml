@@ -22,8 +22,16 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: quarto-dev/quarto-actions/setup@v2
+      # Dev tag docs are cached between runs; a new key is saved when the tags change.
+      - id: tags
+        run: echo "hash=$(git ls-remote --tags --refs origin 'v*' | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .docs-archive
+          key: docs-archive-${{ steps.tags.outputs.hash }}
+          restore-keys: docs-archive-
       # Release docs come from, and new ones go to, docs-site.tar.gz on each GitHub release.
-      - run: uv run docs build --release-assets
+      - run: uv run --locked docs build --ref HEAD --release-assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

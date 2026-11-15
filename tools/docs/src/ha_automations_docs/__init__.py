@@ -2,20 +2,24 @@
 
 Usage:
     uv run docs build     build the site into great-docs/_site
-    uv run docs preview   build the site and serve it locally
+    uv run docs preview   serve the site, building it first unless it is up to date
 
-Each release tag (vX.Y.Z) builds once from its own checkout and is kept in the archive directory
-as ARCHIVE/X.Y.Z/. With --release-assets, releases missing from the archive are downloaded from
-their GitHub release (docs-site.tar.gz), and new builds are attached there; CI uses this. A build
-builds the dev ref and any release whose docs are missing (all of them with --rebuild), and drops
-archived docs for tags that no longer exist. Only tags that also exist on origin build. Builds
-run in parallel, with each line of their output prefixed by the version. The site puts the
-newest release at the root, every release under v/X.Y.Z/ and the dev ref under v/dev/. The
-version list baked into each page is rewritten so every page lists every version.
+Versions are dev, release tags (vX.Y.Z) and dev tags (vX.Y.Z.9NNN). dev is the working tree,
+uncommitted and untracked files included, or --ref. Only tags that also exist on origin build.
+Each tag builds once from its own checkout and is kept in the archive directory as ARCHIVE/X.Y.Z/;
+a build builds dev and any tag whose docs are missing (all of them with --rebuild), and drops
+archived docs for tags that no longer exist. With --release-assets, release docs come from, and
+new ones go to, docs-site.tar.gz on their GitHub release instead of the archive; CI uses this.
+Builds run in parallel, with each line of their output prefixed by the version. The site puts the
+newest release at the root, every tag under v/<version>/ and dev under v/dev/. The version list
+baked into each page is rewritten so every page lists every version.
 """
 
 import argparse
+import contextlib
+import fcntl
 import functools
+import hashlib
 import html
 import json
 import os
@@ -28,11 +32,13 @@ import tempfile
 import threading
 import time
 import webbrowser
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
+# vX.Y.Z for a release, vX.Y.Z.9NNN for a dev tag.
+VERSION_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)(?:\.(9\d{3}))?")
 VERSION_META = re.compile(r'<meta name="gd-version-map" content="[^"]*">')
 DEV = "dev"
 ARCHIVE = ".docs-archive"
@@ -57,11 +63,16 @@ def git(*args: str) -> str:
     ).stdout
 
 
-def releases(tags: list[str]) -> list[str]:
-    """Returns the release versions among tags, newest first."""
-    found = [m for t in tags if (m := RELEASE_TAG.fullmatch(t))]
-    found.sort(key=lambda m: tuple(int(g) for g in m.groups()), reverse=True)
+def versions_of(tags: list[str]) -> list[str]:
+    """Returns the versions among tags, releases and dev tags, newest first."""
+    found = [m for t in tags if (m := VERSION_TAG.fullmatch(t))]
+    found.sort(key=lambda m: tuple(int(g) for g in m.groups() if g), reverse=True)
     return [m.group(0)[1:] for m in found]
+
+
+def is_release(version: str) -> bool:
+    """Returns whether version is a release (X.Y.Z) rather than a dev tag (X.Y.Z.9NNN)."""
+    return version.count(".") == 2
 
 
 def existing_tags() -> list[str]:
@@ -76,27 +87,33 @@ def existing_tags() -> list[str]:
         print("Warning: could not list tags on origin, using local tags")
         return local
     remote = {line.split("refs/tags/", 1)[1] for line in lines if "refs/tags/" in line}
-    for tag in releases(local):
+    for tag in versions_of(local):
         if f"v{tag}" not in remote:
             print(
                 f"Skipping v{tag}: deleted on origin (git fetch --prune --prune-tags)"
             )
-    for tag in releases(sorted(remote - set(local))):
+    for tag in versions_of(sorted(remote - set(local))):
         print(f"Skipping v{tag}: on origin but not here (git fetch --tags)")
     return [t for t in local if t in remote]
 
 
 def version_map(versions: list[str]) -> dict[str, object]:
-    """Returns the selector's version map: dev, then releases with the newest as latest."""
+    """Returns the selector's version map: dev, then tags newest first.
+
+    The newest release is latest, at the root. Dev tags are prereleases.
+    """
+    latest = next((v for v in versions if is_release(v)), None)
     entries: list[dict[str, object]] = [
         {"tag": DEV, "label": DEV, "path_prefix": f"v/{DEV}", "prerelease": True}
     ]
-    for i, version in enumerate(versions):
+    for version in versions:
         entry: dict[str, object] = {"tag": version, "label": version}
-        if i == 0:
+        if version == latest:
             entry |= {"latest": True, "path_prefix": ""}
         else:
             entry["path_prefix"] = f"v/{version}"
+        if not is_release(version):
+            entry["prerelease"] = True
         entries.append(entry)
     return {"versions": entries, "pages": {}}
 
@@ -132,8 +149,43 @@ def run(tag: str, cmd: list[str], cwd: Path, env: dict[str, str]) -> None:
         raise DocsError(f"{tag}: {cmd[0]} exited with {proc.returncode}")
 
 
-def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
-    """Builds the docs at ref as version tag into dest."""
+def working_changes() -> list[str]:
+    """Returns files that differ from HEAD in the working tree: changed, deleted and untracked."""
+    changed = git("diff", "-z", "--name-only", "--no-renames", "HEAD")
+    untracked = git("ls-files", "-z", "--others", "--exclude-standard")
+    return sorted({p for p in (changed + untracked).split("\0") if p})
+
+
+def working_hash() -> str:
+    """Returns a hash of the working tree changes from working_changes."""
+    digest = hashlib.sha256()
+    for name in working_changes():
+        path = Path(name)
+        digest.update(name.encode() + b"\0")
+        digest.update(path.read_bytes() if path.is_file() else b"\0deleted\0")
+    return digest.hexdigest()
+
+
+def apply_working_changes(tag: str, tree: Path) -> None:
+    """Copies the working tree changes into tree, a checkout of HEAD."""
+    changes = working_changes()
+    for name in changes:
+        src, dest = Path(name), tree / name
+        if src.is_file():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+        elif dest.is_file():
+            dest.unlink()
+    say(
+        tag,
+        f"Applied {len(changes)} uncommitted file(s): {', '.join(changes) or 'none'}",
+    )
+
+
+def build_version(
+    ref: str, tag: str, tags: list[str], dest: Path, working: bool = False
+) -> None:
+    """Builds the docs at ref as version tag into dest, with the working tree changes if working."""
     start = time.monotonic()
     # Listing every version makes Great Docs add the selector; tag is latest so it builds at the root.
     versions = [{"tag": t, "label": t, "latest": t == tag} for t in tags]
@@ -144,6 +196,8 @@ def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
         with GIT_LOCK:
             git("worktree", "add", "--quiet", "--detach", str(tree), ref)
         try:
+            if working:
+                apply_working_changes(tag, tree)
             with open(tree / "great-docs.yml", "a") as f:
                 f.write(f"\nversions: {json.dumps(versions)}\n")
             run(tag, ["uv", "sync", "--locked", "--group", "docs"], tree, env)
@@ -229,13 +283,49 @@ def upload_release_docs(version: str, site: Path) -> None:
         print(f"Attached {ASSET} to release v{version}")
 
 
-def build(args: argparse.Namespace) -> Path:
+def stamp(ref: str | None, versions: list[str]) -> dict[str, object]:
+    """Returns what a site build depends on: the dev commit and changes, the versions and this tool."""
+    return {
+        "dev": git("rev-parse", f"{ref or 'HEAD'}^{{commit}}").strip(),
+        "changes": working_hash() if ref is None else None,
+        "versions": versions,
+        "tool": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    }
+
+
+def stamp_path(out: Path) -> Path:
+    """Returns where the stamp of the site in out is kept."""
+    return out.with_name(out.name + ".build.json")
+
+
+@contextlib.contextmanager
+def build_lock(out: Path) -> Iterator[None]:
+    """Holds a lock next to out, so two builds never write the same site at once."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out.with_name(out.name + ".lock"), "w") as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise DocsError(f"another docs build is writing {out}") from None
+        yield
+
+
+def build(args: argparse.Namespace, versions: list[str] | None = None) -> Path:
     """Builds the site and returns its directory."""
+    with build_lock(args.out.resolve()):
+        return build_unlocked(args, versions)
+
+
+def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path:
+    """Builds the site and returns its directory, without taking the lock."""
     archive: Path = args.archive.resolve()
     out: Path = args.out.resolve()
-    versions = releases(existing_tags())
+    if versions is None:
+        versions = versions_of(existing_tags())
     tags = [DEV, *versions]
     print(f"Versions: {', '.join(tags)}")
+    # Taken before building, so edits made during the build make the next preview build again.
+    built = stamp(args.ref, versions)
 
     archive.mkdir(parents=True, exist_ok=True)
     # Drop archived docs for tags that no longer exist and leftovers from failed copies.
@@ -247,36 +337,41 @@ def build(args: argparse.Namespace) -> Path:
         ):
             print(f"Removing {path}: no tag v{path.name}")
             shutil.rmtree(path)
+    stamp_path(out).unlink(missing_ok=True)
     if out.exists():
         shutil.rmtree(out)
 
-    builds = [(args.ref, DEV, out / "v" / DEV)]
+    builds = [(args.ref or "HEAD", DEV, out / "v" / DEV, args.ref is None)]
     for v in versions:
-        if not args.rebuild and (archive / v / "index.html").is_file():
-            print(f"Using {archive / v} for {v} (--rebuild to build it again)")
-        elif (
-            args.rebuild
-            or not args.release_assets
-            or not download_release_docs(v, archive / v)
-        ):
-            builds.append((f"v{v}", v, archive / v))
+        dest = archive / v
+        if args.rebuild:
+            builds.append((f"v{v}", v, dest, False))
+        elif args.release_assets and is_release(v):
+            # The release asset is the record, so a cached copy is not trusted to be attached.
+            if not download_release_docs(v, dest):
+                builds.append((f"v{v}", v, dest, False))
+        elif (dest / "index.html").is_file():
+            print(f"Using {dest} for {v} (--rebuild to build it again)")
+        else:
+            builds.append((f"v{v}", v, dest, False))
     jobs = min(args.jobs, len(builds))
-    print(f"Building {', '.join(tag for _, tag, _ in builds)} ({jobs} at a time)")
+    print(f"Building {', '.join(b[1] for b in builds)} ({jobs} at a time)")
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         for job in [
-            pool.submit(build_version, ref, tag, tags, dest)
-            for ref, tag, dest in builds
+            pool.submit(build_version, ref, tag, tags, dest, working)
+            for ref, tag, dest, working in builds
         ]:
             job.result()
     if args.release_assets:
-        for _, tag, dest in builds[1:]:
-            upload_release_docs(tag, dest)
+        for _, tag, dest, _ in builds[1:]:
+            if is_release(tag):
+                upload_release_docs(tag, dest)
 
-    latest = versions[0] if versions else DEV
-    print(f"Assembling the site in {out}, with {latest} at the root")
+    latest = next((v for v in versions if is_release(v)), None)
+    print(f"Assembling the site in {out}, with {latest or DEV} at the root")
     for version in versions:
         shutil.copytree(archive / version, out / "v" / version)
-    shutil.copytree(out / "v" / latest, out, dirs_exist_ok=True)
+    shutil.copytree(out / "v" / (latest or DEV), out, dirs_exist_ok=True)
 
     data = version_map(versions)
     pages = 0
@@ -288,15 +383,34 @@ def build(args: argparse.Namespace) -> Path:
             pages += 1
     (out / "_version_map.json").write_text(json.dumps(data, indent=2) + "\n")
     print(f"Set the version list on {pages} pages")
+    stamp_path(out).write_text(json.dumps(built, indent=2) + "\n")
     print(f"Site ready in {out}")
     return out
 
 
 def preview(args: argparse.Namespace) -> None:
-    """Builds the site and serves it until interrupted."""
-    site = build(args)
+    """Serves the site until interrupted, building it first unless it is up to date."""
+    out: Path = args.out.resolve()
+    versions = versions_of(existing_tags())
+    path = stamp_path(out)
+    current = path.is_file() and json.loads(path.read_text()) == stamp(
+        args.ref, versions
+    )
+    if current and not (args.build or args.rebuild) and (out / "index.html").is_file():
+        print(
+            f"Site in {out} is up to date with {args.ref or 'the working tree'} and the tags (--build to build it again)"
+        )
+        site = out
+    else:
+        site = build(args, versions)
     handler = functools.partial(SimpleHTTPRequestHandler, directory=str(site))
-    with ThreadingHTTPServer(("127.0.0.1", args.port), handler) as server:
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
+    except OSError as e:
+        raise DocsError(
+            f"cannot serve on port {args.port} ({e.strerror}), try --port"
+        ) from e
+    with server:
         url = f"http://127.0.0.1:{server.server_port}/"
         print(f"Serving {url} (Ctrl+C to stop)")
         if not args.no_open:
@@ -312,17 +426,18 @@ def parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
     for name, help in (
         ("build", "build the site"),
-        ("preview", "build and serve the site"),
+        ("preview", "serve the site, building it first unless it is up to date"),
     ):
         cmd = sub.add_parser(name, help=help)
         cmd.add_argument(
-            "--ref", default="HEAD", help="ref to build as dev (default HEAD)"
+            "--ref",
+            help="ref to build as dev (default: the working tree, uncommitted changes included)",
         )
         cmd.add_argument(
             "--jobs", type=int, default=os.cpu_count() or 1, help="parallel builds"
         )
         cmd.add_argument(
-            "--rebuild", action="store_true", help="build archived releases again"
+            "--rebuild", action="store_true", help="build archived tags again"
         )
         cmd.add_argument(
             "--release-assets",
@@ -330,13 +445,18 @@ def parser() -> argparse.ArgumentParser:
             help=f"download release docs from, and attach new ones to, GitHub releases as {ASSET}",
         )
         cmd.add_argument(
-            "--archive", type=Path, default=Path(ARCHIVE), help="release docs cache"
+            "--archive", type=Path, default=Path(ARCHIVE), help="tag docs cache"
         )
         cmd.add_argument(
             "--out", type=Path, default=Path(OUT), help="site output directory"
         )
         if name == "preview":
             cmd.add_argument("--port", type=int, default=8000)
+            cmd.add_argument(
+                "--build",
+                action="store_true",
+                help="build even if the site is up to date",
+            )
             cmd.add_argument(
                 "--no-open", action="store_true", help="do not open a browser"
             )

@@ -70,17 +70,25 @@ The deploy workflow runs in `CONFIG_REPO` (environment or `.deploy.env`), defaul
 ## Docs
 
 ```sh
-uv run docs preview   # build and serve the site at http://127.0.0.1:8000/
+uv run docs preview   # serve the site at http://127.0.0.1:8000/, building it first if needed
 uv run docs build     # build the site into great-docs/_site
 ```
 
 Needs [Quarto](https://quarto.org). Pages are for users: no internals. Settings tables, defaults and charts come from the code through `docs/_helpers.py`.
 
-The site has a version selector. The newest release is the root, each release is under `v/X.Y.Z/`, and the current commit is under `v/dev/`. Each version builds from its own checkout, so only committed changes show. A build builds `dev` and any release tag (`vX.Y.Z`) whose docs are missing, in parallel, with each output line prefixed by its version. Only tags that also exist on `origin` build. `--rebuild` builds every release again.
+The site has a version selector:
 
-Built release docs are kept so each release builds once. Locally they are cached in `.docs-archive/`. In CI, each push to `main` runs `uv run docs build --release-assets`: it downloads `docs-site.tar.gz` from each GitHub release, builds releases without one and attaches the result, then deploys to GitHub Pages. If the release is not published yet, the next build attaches it. To rebuild a release in CI, delete its `docs-site.tar.gz` asset.
+| Version | Built from | Path |
+|---|---|---|
+| `dev` | the working tree, uncommitted and untracked files included (`--ref` for a ref) | `v/dev/` |
+| dev tags (`vX.Y.Z.9NNN`) | the tag | `v/X.Y.Z.9NNN/` |
+| releases (`vX.Y.Z`) | the tag | `v/X.Y.Z/`, and the newest at the root |
 
-For a quick single-version preview of uncommitted changes, use `uv run great-docs preview`.
+- Each tag builds once and is reused after that: locally from `.docs-archive/`, in CI from `docs-site.tar.gz` on its GitHub release (releases) or the Actions cache (dev tags). `--rebuild` builds every tag again; in CI, delete a release's `docs-site.tar.gz` to rebuild it.
+- Only tags that also exist on `origin` build. Docs for deleted tags are dropped.
+- Versions that need building build in parallel (`--jobs`), each output line prefixed by its version.
+- `preview` skips the build when the site matches the working tree, the tags and the docs tool; `--build` builds anyway.
+- Each push to `main` runs `uv run docs build --ref HEAD --release-assets` and deploys to GitHub Pages. If a new release is not published yet, the next run attaches its docs.
 
 ## Commits
 
