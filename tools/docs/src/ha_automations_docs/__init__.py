@@ -3,6 +3,7 @@
 Usage:
     uv run docs build     build the site into great-docs/_site
     uv run docs preview   serve the site, building it first unless it is up to date
+    uv run docs attach vX.Y.Z   build a release's docs and attach them to its GitHub release
 
 Versions are dev, release tags (vX.Y.Z) and dev tags (vX.Y.Z.9NNN). dev is the working tree,
 uncommitted and untracked files included, or --ref. Only tags that also exist on origin build.
@@ -366,8 +367,8 @@ def download_release_docs(version: str, dest: Path) -> bool:
     return True
 
 
-def upload_release_docs(version: str, site: Path) -> None:
-    """Attaches site to release vVERSION as ASSET, replacing any earlier one."""
+def upload_release_docs(version: str, site: Path) -> bool:
+    """Attaches site to release vVERSION as ASSET, replacing any earlier one. Returns success."""
     with tempfile.TemporaryDirectory() as tmp:
         asset = Path(tmp) / ASSET
         with tarfile.open(asset, "w:gz") as tar:
@@ -380,11 +381,11 @@ def upload_release_docs(version: str, site: Path) -> None:
         )
     if result.returncode:
         print(
-            f"Warning: could not attach {ASSET} to release v{version}, the next build tries again: "
-            + result.stderr.strip()
+            f"Could not attach {ASSET} to release v{version}: {result.stderr.strip()}"
         )
-    else:
-        print(f"Attached {ASSET} to release v{version}")
+        return False
+    print(f"Attached {ASSET} to release v{version}")
+    return True
 
 
 def stamp(ref: str | None, versions: list[str]) -> dict[str, object]:
@@ -469,8 +470,8 @@ def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path
             job.result()
     if args.release_assets:
         for _, tag, dest, _ in builds[1:]:
-            if is_release(tag):
-                upload_release_docs(tag, dest)
+            if is_release(tag) and not upload_release_docs(tag, dest):
+                print("The next docs build tries again")
 
     latest = next((v for v in versions if is_release(v)), None)
     print(f"Assembling the site in {out}, with {latest or DEV} at the root")
@@ -523,6 +524,23 @@ def preview(args: argparse.Namespace) -> None:
         server.serve_forever()
 
 
+def attach(args: argparse.Namespace) -> None:
+    """Builds the docs for a release tag and attaches them to its GitHub release."""
+    tag: str = args.tag
+    version = tag.removeprefix("v")
+    if not VERSION_TAG.fullmatch(f"v{version}") or not is_release(version):
+        raise DocsError(f"{tag} is not a release tag (vX.Y.Z)")
+    versions = versions_of(existing_tags())
+    if version not in versions:
+        raise DocsError(f"v{version} is not a tag here and on origin")
+    with tempfile.TemporaryDirectory() as tmp:
+        site = Path(tmp) / version
+        OUTPUT.start([version])
+        build_version(f"v{version}", version, [DEV, *versions], site)
+        if not upload_release_docs(version, site):
+            raise DocsError(f"could not attach {ASSET} to release v{version}")
+
+
 def parser() -> argparse.ArgumentParser:
     """Returns the command line parser."""
     p = argparse.ArgumentParser(
@@ -565,6 +583,11 @@ def parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--no-open", action="store_true", help="do not open a browser"
             )
+    cmd = sub.add_parser(
+        "attach",
+        help=f"build a release's docs and attach them to its GitHub release as {ASSET}",
+    )
+    cmd.add_argument("tag", help="release tag, vX.Y.Z")
     return p
 
 
@@ -576,8 +599,10 @@ def main() -> None:
     try:
         if args.command == "build":
             build(args)
-        else:
+        elif args.command == "preview":
             preview(args)
+        else:
+            attach(args)
     except DocsError as e:
         sys.exit(f"docs: {e}")
     except KeyboardInterrupt:

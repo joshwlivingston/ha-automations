@@ -2,6 +2,9 @@ name: Docs
 on:
   push:
     branches: [main]
+  # A deleted tag drops its version. release prod deletes old dev tags after the GitHub release
+  # exists, so this run also attaches the new release's docs.
+  delete:
   workflow_dispatch:
 
 permissions:
@@ -15,6 +18,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'delete' || github.event.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
