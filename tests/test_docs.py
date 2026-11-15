@@ -8,9 +8,11 @@ import pytest
 import ha_automations_docs
 from ha_automations_docs import (
     ASSET,
+    Output,
     apply_working_changes,
     download_release_docs,
     existing_tags,
+    fit,
     set_version_map,
     upload_release_docs,
     version_map,
@@ -177,3 +179,43 @@ def test_working_changes_are_applied_to_a_checkout(
 
     Path("edited.qmd").write_text("newer")
     assert working_hash() != before
+
+
+def test_parallel_output_prints_each_log_as_one_block(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+):
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    out = Output()
+    out.start(["dev", "0.1.0"])
+    out.line("dev", "-- Step  1/19 - Prepare")
+    out.line("0.1.0", "uv output")
+    out.line("dev", "dev detail")
+    out.line("0.1.0", "-- Step  1/19 - Prepare")
+    out.done("0.1.0", "Built")
+    out.done("dev", "Built")
+    assert capsys.readouterr().out.splitlines() == [
+        "[dev] -- Step  1/19 - Prepare",
+        "[0.1.0] -- Step  1/19 - Prepare",
+        "===== 0.1.0 =====",
+        "[0.1.0] uv output",
+        "[0.1.0] -- Step  1/19 - Prepare",
+        "[0.1.0] Built",
+        "===== dev =====",
+        "[dev] -- Step  1/19 - Prepare",
+        "[dev] dev detail",
+        "[dev] Built",
+    ]
+
+
+def test_single_build_output_streams(capsys: pytest.CaptureFixture[str]):
+    out = Output()
+    out.start(["dev"])
+    out.line("dev", "detail")
+    out.done("dev", "Built")
+    assert capsys.readouterr().out.splitlines() == ["[dev] detail", "[dev] Built"]
+
+
+def test_fit_counts_wide_characters_as_two_columns():
+    assert fit("ab🎉cd", 4) == "ab🎉"
+    assert fit("ab🎉cd", 3) == "ab"
+    assert fit("abc", 10) == "abc"

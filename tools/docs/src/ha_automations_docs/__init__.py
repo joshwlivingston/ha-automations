@@ -10,7 +10,7 @@ Each tag builds once from its own checkout and is kept in the archive directory 
 a build builds dev and any tag whose docs are missing (all of them with --rebuild), and drops
 archived docs for tags that no longer exist. With --release-assets, release docs come from, and
 new ones go to, docs-site.tar.gz on their GitHub release instead of the archive; CI uses this.
-Builds run in parallel, with each line of their output prefixed by the version. The site puts the
+Builds run in parallel; see Output for how their logs show. The site puts the
 newest release at the root, every tag under v/<version>/ and dev under v/dev/. The version list
 baked into each page is rewritten so every page lists every version.
 """
@@ -31,6 +31,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import unicodedata
 import webbrowser
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -47,7 +48,6 @@ OUT = "great-docs/_site"
 ASSET = "docs-site.tar.gz"
 # Worktree add and remove edit shared files in .git, so they run one at a time.
 GIT_LOCK = threading.Lock()
-PRINT_LOCK = threading.Lock()
 # Build output that only applies to a full Great Docs versioned site.
 DROP = ["v", "_redirects", "vercel.json", "_version_map.json"]
 
@@ -125,10 +125,98 @@ def set_version_map(page: str, data: dict[str, object]) -> str:
     return VERSION_META.sub(lambda _: meta, page)
 
 
+class Output:
+    """Shows the output of version builds.
+
+    One build streams its lines. Several builds keep each build's lines together: a terminal shows
+    one live status line per build, other output shows each build's step lines, and each build's
+    full log prints as one block when it finishes, in a collapsible group on GitHub Actions.
+    """
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.stream = True
+        self.tty = sys.stdout.isatty()
+        self.github = os.environ.get("GITHUB_ACTIONS") == "true"
+        self.logs: dict[str, list[str]] = {}
+        self.status: dict[str, str] = {}
+        self.drawn = 0
+        self.last_draw = 0.0
+
+    def start(self, tags: list[str]) -> None:
+        """Starts showing builds of tags."""
+        self.stream = len(tags) == 1
+        self.logs = {t: [] for t in tags}
+        self.status = dict.fromkeys(tags, "waiting")
+        self.drawn = 0
+
+    def line(self, tag: str, text: str) -> None:
+        """Shows a line of output from the build of tag."""
+        with self.lock:
+            if self.stream or tag not in self.logs:
+                print(f"[{tag}] {text}")
+                return
+            self.logs[tag].append(text)
+            if text.strip():
+                self.status[tag] = text.strip()
+            if self.tty:
+                self.draw()
+            elif text.lstrip().startswith("-- Step"):
+                print(f"[{tag}] {text.strip()}")
+
+    def done(self, tag: str, summary: str) -> None:
+        """Shows that the build of tag finished, with its full log when builds run in parallel."""
+        with self.lock:
+            if self.stream or tag not in self.logs:
+                print(f"[{tag}] {summary}")
+                return
+            self.clear()
+            print(f"::group::{tag}: {summary}" if self.github else f"===== {tag} =====")
+            for text in self.logs.pop(tag):
+                print(f"[{tag}] {text}")
+            if self.github:
+                print("::endgroup::")
+            print(f"[{tag}] {summary}")
+            del self.status[tag]
+            if self.tty:
+                self.draw(force=True)
+
+    def clear(self) -> None:
+        """Erases the status lines."""
+        if self.drawn:
+            sys.stdout.write(f"\x1b[{self.drawn}F\x1b[J")
+            self.drawn = 0
+
+    def draw(self, force: bool = False) -> None:
+        """Redraws the status lines, at most ten times a second unless forced."""
+        now = time.monotonic()
+        if not force and now - self.last_draw < 0.1:
+            return
+        self.last_draw = now
+        self.clear()
+        width = shutil.get_terminal_size().columns - 1
+        for tag, text in self.status.items():
+            print(fit(f"[{tag}] {text}", width))
+        self.drawn = len(self.status)
+        sys.stdout.flush()
+
+
+OUTPUT = Output()
+
+
+def fit(text: str, width: int) -> str:
+    """Returns text cut to fit width terminal columns, counting wide characters as two."""
+    used = 0
+    for i, char in enumerate(text):
+        used += 2 if unicodedata.east_asian_width(char) in "WF" else 1
+        if used > width:
+            return text[:i]
+    return text
+
+
 def say(tag: str, line: str) -> None:
-    """Prints a line prefixed with the version it is about."""
-    with PRINT_LOCK:
-        print(f"[{tag}] {line}")
+    """Shows a line about the build of tag."""
+    OUTPUT.line(tag, line)
 
 
 def run(tag: str, cmd: list[str], cwd: Path, env: dict[str, str]) -> None:
@@ -190,6 +278,23 @@ def build_version(
     # Listing every version makes Great Docs add the selector; tag is latest so it builds at the root.
     versions = [{"tag": t, "label": t, "latest": t == tag} for t in tags]
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
+    try:
+        build_checkout(ref, tag, versions, dest, working, env)
+    except Exception as e:
+        OUTPUT.done(tag, f"Failed: {e}")
+        raise
+    OUTPUT.done(tag, f"Built from {ref} in {time.monotonic() - start:.0f}s")
+
+
+def build_checkout(
+    ref: str,
+    tag: str,
+    versions: list[dict[str, object]],
+    dest: Path,
+    working: bool,
+    env: dict[str, str],
+) -> None:
+    """Builds the docs in a checkout of ref with the versions list, and copies the site to dest."""
     with tempfile.TemporaryDirectory() as tmp:
         tree = Path(tmp) / "tree"
         say(tag, f"Checking out {ref} in {tree}")
@@ -219,7 +324,6 @@ def build_version(
         finally:
             with GIT_LOCK:
                 git("worktree", "remove", "--force", str(tree))
-    say(tag, f"Built from {ref} in {time.monotonic() - start:.0f}s")
 
 
 def replace_dir(src: Path, dest: Path) -> None:
@@ -356,6 +460,7 @@ def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path
             builds.append((f"v{v}", v, dest, False))
     jobs = min(args.jobs, len(builds))
     print(f"Building {', '.join(b[1] for b in builds)} ({jobs} at a time)")
+    OUTPUT.start([b[1] for b in builds])
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         for job in [
             pool.submit(build_version, ref, tag, tags, dest, working)
