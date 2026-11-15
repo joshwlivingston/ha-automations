@@ -34,13 +34,9 @@ def _quiet(msg: str) -> None:
     pass
 
 
-ACTION_WIDTH = 9          # longest log action
-REASON_WIDTH = 19         # longest log reason
-
-
 def line(action: str, reason: str, detail: str = "") -> str:
-    """One log line with action, reason and detail in aligned columns."""
-    return f"{action:<{ACTION_WIDTH}}  {reason:<{REASON_WIDTH}}  {detail}".rstrip()
+    """One log line: action, reason and optional detail."""
+    return f"{action}: {reason}; {detail}" if detail else f"{action}: {reason}"
 
 
 @dataclass
