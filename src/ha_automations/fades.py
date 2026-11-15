@@ -92,11 +92,11 @@ class LightFade:
         return rising is None or rising == self.rising
 
     def _at(self, level: float) -> str:
-        """A reading as a log field, e.g. sun=-4.3°."""
+        """A reading as a log field, e.g. sun=-4.3deg."""
         return f"{self.detector.label}={level:.1f}{self.detector.unit}"
 
     def _u(self, name: str, level: float) -> str:
-        """A configured level as a log field, e.g. from_level=-6°."""
+        """A configured level as a log field, e.g. from_level=-6deg."""
         return f"{name}={level:g}{self.detector.unit}"
 
     def _skip(self, level: float | None, rising: bool | None) -> str | None:

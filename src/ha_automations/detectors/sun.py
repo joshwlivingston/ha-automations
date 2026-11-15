@@ -11,7 +11,7 @@ class SunDetector:
     """Sun elevation in degrees from `sun.sun`."""
 
     label = "sun"
-    unit = "°"
+    unit = "deg"
 
     def __init__(self, app):
         self.app = app
