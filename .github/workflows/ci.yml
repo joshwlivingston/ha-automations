@@ -17,6 +17,23 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pyright
       - run: uv run pytest
+      - name: Version bumped over base
+        if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/main' && github.event.before != '0000000000000000000000000000000000000000')
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.base_ref || github.event.before }}
+        run: |
+          git fetch --depth=1 origin "$BASE"
+          git show FETCH_HEAD:pyproject.toml > /tmp/base-pyproject.toml
+          uv run python - <<'EOF'
+          import tomllib
+          def ver(path):
+              return tomllib.load(open(path, "rb"))["project"]["version"]
+          base, head = ver("/tmp/base-pyproject.toml"), ver("pyproject.toml")
+          key = lambda v: tuple(int(p) for p in v.split("."))
+          if key(head) <= key(base):
+              raise SystemExit(f"version {head} must be greater than base {base}; run uv version X.Y.Z.9NNN")
+          print(f"version {base} -> {head}")
+          EOF
       - name: Tag matches pyproject version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
