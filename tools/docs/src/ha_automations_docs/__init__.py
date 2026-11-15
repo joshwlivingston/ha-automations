@@ -5,11 +5,13 @@ Usage:
     uv run docs preview   build the site and serve it locally
 
 Each release tag (vX.Y.Z) builds once from its own checkout and is kept in the archive directory
-as ARCHIVE/X.Y.Z/. A build builds the dev ref and any release whose archived docs are missing
-(all of them with --rebuild), and drops archived docs for tags that no longer exist. Builds run
-in parallel, with each line of their output prefixed by the version. The site puts the newest
-release at the root, every release under v/X.Y.Z/ and the dev ref under v/dev/. The version list
-baked into each page is rewritten so every page lists every version.
+as ARCHIVE/X.Y.Z/. With --release-assets, releases missing from the archive are downloaded from
+their GitHub release (docs-site.tar.gz), and new builds are attached there; CI uses this. A build
+builds the dev ref and any release whose docs are missing (all of them with --rebuild), and drops
+archived docs for tags that no longer exist. Only tags that also exist on origin build. Builds
+run in parallel, with each line of their output prefixed by the version. The site puts the
+newest release at the root, every release under v/X.Y.Z/ and the dev ref under v/dev/. The
+version list baked into each page is rewritten so every page lists every version.
 """
 
 import argparse
@@ -21,6 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import threading
 import time
@@ -34,6 +37,8 @@ VERSION_META = re.compile(r'<meta name="gd-version-map" content="[^"]*">')
 DEV = "dev"
 ARCHIVE = ".docs-archive"
 OUT = "great-docs/_site"
+# Release asset holding a release's built docs.
+ASSET = "docs-site.tar.gz"
 # Worktree add and remove edit shared files in .git, so they run one at a time.
 GIT_LOCK = threading.Lock()
 PRINT_LOCK = threading.Lock()
@@ -156,17 +161,72 @@ def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
                 elif path.exists():
                     path.unlink()
             say(tag, f"Copying the site to {dest}")
-            # Copy then rename, so a failed copy never leaves a partial dest.
-            partial = dest.with_name(dest.name + ".partial")
-            for path in (partial, dest):
-                if path.exists():
-                    shutil.rmtree(path)
-            shutil.copytree(site, partial)
-            partial.rename(dest)
+            replace_dir(site, dest)
         finally:
             with GIT_LOCK:
                 git("worktree", "remove", "--force", str(tree))
     say(tag, f"Built from {ref} in {time.monotonic() - start:.0f}s")
+
+
+def replace_dir(src: Path, dest: Path) -> None:
+    """Copies src to dest, replacing it. Copies then renames, so a failure never leaves a partial dest."""
+    partial = dest.with_name(dest.name + ".partial")
+    for path in (partial, dest):
+        if path.exists():
+            shutil.rmtree(path)
+    shutil.copytree(src, partial)
+    partial.rename(dest)
+
+
+def download_release_docs(version: str, dest: Path) -> bool:
+    """Downloads the docs attached to release vVERSION into dest. Returns False if there are none."""
+    with tempfile.TemporaryDirectory() as tmp:
+        result = subprocess.run(
+            [
+                "gh",
+                "release",
+                "download",
+                f"v{version}",
+                "--pattern",
+                ASSET,
+                "--dir",
+                tmp,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode:
+            print(f"No {ASSET} on release v{version}, building it")
+            return False
+        site = Path(tmp) / "site"
+        site.mkdir()
+        with tarfile.open(Path(tmp) / ASSET) as tar:
+            tar.extractall(site, filter="data")
+        replace_dir(site, dest)
+    print(f"Downloaded {ASSET} from release v{version}")
+    return True
+
+
+def upload_release_docs(version: str, site: Path) -> None:
+    """Attaches site to release vVERSION as ASSET, replacing any earlier one."""
+    with tempfile.TemporaryDirectory() as tmp:
+        asset = Path(tmp) / ASSET
+        with tarfile.open(asset, "w:gz") as tar:
+            tar.add(site, arcname=".")
+        result = subprocess.run(
+            ["gh", "release", "upload", f"v{version}", str(asset), "--clobber"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    if result.returncode:
+        print(
+            f"Warning: could not attach {ASSET} to release v{version}, the next build tries again: "
+            + result.stderr.strip()
+        )
+    else:
+        print(f"Attached {ASSET} to release v{version}")
 
 
 def build(args: argparse.Namespace) -> Path:
@@ -192,10 +252,14 @@ def build(args: argparse.Namespace) -> Path:
 
     builds = [(args.ref, DEV, out / "v" / DEV)]
     for v in versions:
-        if args.rebuild or not (archive / v / "index.html").is_file():
-            builds.append((f"v{v}", v, archive / v))
-        else:
+        if not args.rebuild and (archive / v / "index.html").is_file():
             print(f"Using {archive / v} for {v} (--rebuild to build it again)")
+        elif (
+            args.rebuild
+            or not args.release_assets
+            or not download_release_docs(v, archive / v)
+        ):
+            builds.append((f"v{v}", v, archive / v))
     jobs = min(args.jobs, len(builds))
     print(f"Building {', '.join(tag for _, tag, _ in builds)} ({jobs} at a time)")
     with ThreadPoolExecutor(max_workers=jobs) as pool:
@@ -204,6 +268,9 @@ def build(args: argparse.Namespace) -> Path:
             for ref, tag, dest in builds
         ]:
             job.result()
+    if args.release_assets:
+        for _, tag, dest in builds[1:]:
+            upload_release_docs(tag, dest)
 
     latest = versions[0] if versions else DEV
     print(f"Assembling the site in {out}, with {latest} at the root")
@@ -256,6 +323,11 @@ def parser() -> argparse.ArgumentParser:
         )
         cmd.add_argument(
             "--rebuild", action="store_true", help="build archived releases again"
+        )
+        cmd.add_argument(
+            "--release-assets",
+            action="store_true",
+            help=f"download release docs from, and attach new ones to, GitHub releases as {ASSET}",
         )
         cmd.add_argument(
             "--archive", type=Path, default=Path(ARCHIVE), help="release docs cache"

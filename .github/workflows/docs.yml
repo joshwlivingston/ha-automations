@@ -22,24 +22,11 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: quarto-dev/quarto-actions/setup@v2
-      - name: Check out the release docs archive
-        run: |
-          if git fetch --depth 1 origin docs-archive; then
-            git worktree add -B docs-archive .docs-archive FETCH_HEAD
-          else
-            git worktree add --orphan -b docs-archive .docs-archive
-          fi
-      - run: uv run docs build
+      # Release docs come from, and new ones go to, docs-site.tar.gz on each GitHub release.
+      - run: uv run docs build --release-assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Save new release docs to the archive
-        working-directory: .docs-archive
-        run: |
-          git add -A
-          git diff --cached --quiet && exit 0
-          git -c user.name="github-actions[bot]" -c user.email="41898283+github-actions[bot]@users.noreply.github.com" \
-            commit -qm "docs: archive release docs"
-          git push origin HEAD:docs-archive
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: great-docs/_site

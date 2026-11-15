@@ -1,11 +1,20 @@
 import html
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
 import ha_automations_docs
-from ha_automations_docs import existing_tags, releases, set_version_map, version_map
+from ha_automations_docs import (
+    ASSET,
+    download_release_docs,
+    existing_tags,
+    releases,
+    set_version_map,
+    upload_release_docs,
+    version_map,
+)
 
 
 def test_releases_newest_first_without_dev_tags():
@@ -51,3 +60,33 @@ def test_existing_tags_skips_tags_deleted_on_origin(monkeypatch: pytest.MonkeyPa
 def test_existing_tags_uses_local_tags_without_origin(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(ha_automations_docs, "git", fake_git(["v0.1.0"], None))
     assert existing_tags() == ["v0.1.0"]
+
+
+def test_release_docs_round_trip(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    stored = tmp_path / "stored.tar.gz"
+    calls: list[list[str]] = []
+
+    def gh(cmd: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        if cmd[2] == "upload":
+            stored.write_bytes(Path(cmd[4]).read_bytes())
+        elif stored.exists():
+            (Path(cmd[cmd.index("--dir") + 1]) / ASSET).write_bytes(stored.read_bytes())
+        else:
+            return subprocess.CompletedProcess(cmd, 1, "", "release not found")
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(ha_automations_docs.subprocess, "run", gh)
+    site = tmp_path / "site"
+    (site / "docs").mkdir(parents=True)
+    (site / "index.html").write_text("home")
+    (site / "docs" / "page.html").write_text("page")
+
+    dest = tmp_path / "archive" / "0.1.0"
+    dest.parent.mkdir()
+    assert not download_release_docs("0.1.0", dest)
+    upload_release_docs("0.1.0", site)
+    assert download_release_docs("0.1.0", dest)
+    assert (dest / "index.html").read_text() == "home"
+    assert (dest / "docs" / "page.html").read_text() == "page"
+    assert calls[1][:4] == ["gh", "release", "upload", "v0.1.0"]
