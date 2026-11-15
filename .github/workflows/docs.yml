@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -22,10 +22,24 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: quarto-dev/quarto-actions/setup@v2
-      - run: uv sync --locked --group docs
-      - run: uv run great-docs build
+      - name: Check out the release docs archive
+        run: |
+          if git fetch --depth 1 origin docs-archive; then
+            git worktree add -B docs-archive .docs-archive FETCH_HEAD
+          else
+            git worktree add --orphan -b docs-archive .docs-archive
+          fi
+      - run: uv run --no-project scripts/build_docs.py
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Save new release docs to the archive
+        working-directory: .docs-archive
+        run: |
+          git add -A
+          git diff --cached --quiet && exit 0
+          git -c user.name="github-actions[bot]" -c user.email="41898283+github-actions[bot]@users.noreply.github.com" \
+            commit -qm "docs: archive release docs"
+          git push origin HEAD:docs-archive
       - uses: actions/upload-pages-artifact@v3
         with:
           path: great-docs/_site
