@@ -43,6 +43,11 @@ def test_sunset_defaults():
     app = build(SunsetFade, {"light": "light.x", "to_level": -8})
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered) == (6, -8, None, False)
+    assert app.daily == ["23:00:00"]
+
+
+def test_off_time_null_schedules_nothing():
+    app = build(SunsetFade, {"light": "light.x", "off_time": None})
     assert app.daily == []
 
 
@@ -98,6 +103,7 @@ def test_summary_lines(snapshot):
     cases = [
         (SunriseFade, {"light": "light.x"}, "bedroom_sunrise"),
         (SunsetFade, {"light": "light.y"}, "living"),
+        (SunsetFade, {"light": "light.y", "off_time": None}, "living"),
         (
             LightFadeApp,
             {

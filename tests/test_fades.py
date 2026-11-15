@@ -140,6 +140,26 @@ def test_untriggered_off_level_turns_off_once():
     assert light.calls == [("off", fade.off_transition)]
 
 
+def test_stop_turns_off_and_disarms():
+    det, light = FakeDetector(-10, True), FakeLight()
+    fade = rising(det, light)
+    fade.start()
+    assert fade.stop("reached off_time")
+    assert light.calls[-1] == ("off", fade.off_transition)
+    assert fade.ramp_from is None
+    det.level = -4
+    assert not fade.update()
+    assert light.pct == 0
+
+
+def test_stop_when_off_does_nothing():
+    light = FakeLight()
+    fade = falling(FakeDetector(-20, False), light)
+    assert not fade.stop("reached off_time")
+    assert light.calls == []
+    assert fade.ramp_from == fade.from_level
+
+
 def test_brighten_only_reports_change():
     assert brighten_only(FakeLight(20), 30)
     assert not brighten_only(FakeLight(50), 30)
@@ -173,6 +193,10 @@ class Script:
             self.det.rising = rising
         self.lines.append(f"> sun({level}{'' if rising is None else f', rising={rising}'})")
         self.fade.update()
+
+    def stop(self):
+        self.lines.append("> stop()")
+        self.fade.stop("reached off_time")
 
     def manual(self, pct):
         """Set the light by hand; logs nothing."""
@@ -216,3 +240,17 @@ def test_sunset_evening_log(snapshot):
     for level in (6, 0, -6, -6.5, -8):
         s.sun(level)
     assert str(s) == snapshot
+
+
+def test_off_time_log(snapshot):
+    sunset = Script(-8, False, **SUNSET)
+    sunset.lines.append("# sunset, light on after the fade")
+    sunset.manual(50)
+    sunset.stop()
+    sunset.stop()
+    sunrise = Script(-10, True, **SUNRISE)
+    sunrise.lines.append("# sunrise, armed")
+    sunrise.start()
+    sunrise.stop()
+    sunrise.sun(-4)
+    assert f"{sunset}\n{sunrise}" == snapshot

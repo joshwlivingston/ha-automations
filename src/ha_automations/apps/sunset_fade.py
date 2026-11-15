@@ -1,4 +1,4 @@
-"""Brighten a light as the sun sets.
+"""Brighten a light as the sun sets and turn it off at night.
 
 Usage
 -----
@@ -28,6 +28,7 @@ class SunsetSettings(LightFadeSettings):
     detector: Sun = Field(Sun(), description="Uses the sun's elevation")
     from_level: float = Field(6, description="A little above the horizon. The light turns on")
     to_level: float = Field(-6, description="Civil dusk. The light reaches full brightness")
+    off_time: str | None = Field("23:00:00", description="Time the light turns off")
 
 
 class SunsetFade(LightFadeApp):

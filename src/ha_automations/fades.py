@@ -46,7 +46,8 @@ class LightFade:
     The fade runs in whichever direction from_level to to_level points, and
     ignores readings while the detector reports the opposite direction.
     Brightness goes from min_brightness to max_brightness, never lowered.
-    Once the level reaches off_level, if set, the light turns off.
+    Once the level reaches off_level, if set, the light turns off. stop()
+    turns it off at any time.
 
     Untriggered fades act whenever the level is between from_level and
     to_level. Triggered fades do nothing until start() finds the level short of
@@ -131,6 +132,25 @@ class LightFade:
         self.log(line("arm", "short of from_level", detail))
         return self.update(ON_TRANSITION, explain=True)
 
+    def stop(self, reason: str) -> bool:
+        """Turn the light off and disarm a triggered fade. False if already off."""
+        return self._turn_off(reason, "", self.log)
+
+    def _turn_off(self, reason: str, at: str, noop: Callable[[str], None]) -> bool:
+        """Turn the light off if on, then disarm a triggered fade. False if already off."""
+        self._in_ramp = False
+        where = f"{self.light} {at}" if at else str(self.light)
+        turned_off = self.light.brightness_pct() > 0
+        if turned_off:
+            self.light.turn_off(self.off_transition)
+            self.log(line("off", reason, f"{where} transition={self.off_transition:g}s"))
+        else:
+            noop(line("skip", "already off", where))
+        if self.triggered and self.ramp_from is not None:
+            self.ramp_from = None
+            self.log(line("disarm", reason, "until next start trigger"))
+        return turned_off
+
     def update(self, transition: float = RAMP_TRANSITION, explain: bool = False) -> bool:
         """Set the light for the current level. False if outside the fade.
 
@@ -146,17 +166,8 @@ class LightFade:
             return False
         assert level is not None
         if self.off_level is not None and not self._ahead(self.off_level, level):
-            self._in_ramp = False
             at = f"{self._at(level)} {self._u('off_level', self.off_level)}"
-            if self.light.brightness_pct() > 0:
-                self.light.turn_off(self.off_transition)
-                detail = f"{self.light} {at} transition={self.off_transition:g}s"
-                self.log(line("off", "reached off_level", detail))
-            else:
-                noop(line("skip", "already off", f"{self.light} {at}"))
-            if self.triggered:
-                self.ramp_from = None
-                self.log(line("disarm", "reached off_level", "until next start trigger"))
+            self._turn_off("reached off_level", at, noop)
             return True
         end = self.to_level + (END_MARGIN if self.rising else -END_MARGIN)
         if self._ahead(self.ramp_from, level) or self._ahead(level, end):

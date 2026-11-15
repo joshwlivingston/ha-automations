@@ -50,6 +50,10 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 | Reaches `to_level` | Reaches `max_brightness`. The app stops changing it. |
 | Rising | Untouched |
 
+| Time | Light |
+|---|---|
+| `off_time` | Fades off over `off_transition` seconds |
+
 ```{python}
 #| echo: false
 #| fig-cap: "Brightness against sun elevation, default settings. Time runs left to right."
@@ -87,6 +91,26 @@ living_room_sunset:
   class: SunsetFade
   light: light.living_room_lamp
   off_level: -18
+```
+
+**Turn off at midnight**
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  off_time: "00:00:00"
+```
+
+**Leave on all night**
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  off_time: null
 ```
 
 **Two lights**

@@ -25,13 +25,14 @@ What happens when you use a light while a light app controls it.
 | Turn the light off a little past `to_level` | Leaves it off |
 | Turn the light on after `off_level`, app has `start` triggers | Leaves it on |
 | Turn the light on after `off_level`, app has no `start` triggers | Turns it off at the next sun update, until the sun turns around at midday or midnight |
+| Turn the light on after `off_time` | Leaves it on until `off_time` the next day |
 
 ## Timing
 
 - The light changes each time Home Assistant updates the sun's elevation, every few minutes.
 - Each change is a smooth `{python} fades.RAMP_TRANSITION`-second transition.
 - The first change after a start trigger takes `{python} fades.ON_TRANSITION` seconds.
-- The fade-out at `off_level` takes `off_transition` seconds, `{python} fades.OFF_TRANSITION` by default.
+- The fade-out at `off_level` or `off_time` takes `off_transition` seconds, `{python} fades.OFF_TRANSITION` by default.
 
 ## Restarts
 
