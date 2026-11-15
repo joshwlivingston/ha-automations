@@ -1,0 +1,47 @@
+---
+title: Light app log
+---
+
+Lines the light apps write to the AppDaemon log. Sun values print as `deg`, for example `sun=-3.0deg`. Where to find the log: [Read the log](../../user-guide/log.qmd).
+
+## A sunrise morning
+
+```
+INFO bedroom_sunrise: check: start trigger; daily at 05:45:00
+INFO bedroom_sunrise: arm: short of from_level; sun=-9.8deg to_level=0deg off_level=4deg
+INFO bedroom_sunrise: set: ramp 0%; light.bedroom_lamp 5% sun=-9.8deg transition=5s
+INFO bedroom_sunrise: set: ramp 70%; light.bedroom_lamp 31% sun=-3.0deg transition=60s
+INFO bedroom_sunrise: ramp done: past to_level; sun=1.1deg to_level=0deg
+INFO bedroom_sunrise: off: reached off_level; light.bedroom_lamp sun=4.0deg off_level=4deg transition=300s
+INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
+```
+
+## Lines
+
+| Line | Meaning |
+|---|---|
+| `load: init` | The app loaded. Lists its settings. |
+| `check: start trigger` | A start trigger or the test event fired |
+| `arm: short of from_level` | The fade starts now |
+| `set: ramp N%` | The light was set to a brightness. `N%` is how far through the fade the sun is. |
+| `keep: above target` | The light is already brighter than the fade, usually from a manual change. Left alone. |
+| `ramp done: past to_level` | The fade reached full brightness |
+| `off: reached off_level` | The light is fading off |
+| `disarm: reached off_level` | The fade is over until the next start trigger |
+| `skip arm: <reason>` | A start trigger or test event fired, and the fade did not start. Reasons below. |
+| `skip: <reason>` | A sun update changed nothing. Reasons below. |
+
+## Skip reasons
+
+| Reason | Meaning |
+|---|---|
+| `past from_level` | The sun has already passed `from_level`. Too late today. |
+| `sun rising`, `sun falling` | The sun is moving the other way from the fade |
+| `no sun reading` | Home Assistant has no sun elevation. Check the Sun integration. |
+| `not armed` | The app has start triggers and none has started it |
+| `short of ramp_from` | The sun has not reached the fade's start yet |
+| `past to_level` | The fade is over for today |
+| `already off` | Past `off_level` and the light is off |
+| `at or above target` | The light is already at or above the fade's brightness |
+
+`skip` lines from sun updates are hidden at the default log level. They show after a test event, which logs every step. To see them all the time for one app, add `log_level: DEBUG` to its entry in `apps.yaml`.

@@ -14,23 +14,11 @@ from ha_automations.apps import sunset_fade
 S = sunset_fade.SunsetSettings
 ```
 
-Brightens a light as the sun goes down, so the room is lit by the time it is dark. The light stays on for the evening.
+Brightens a light as the sun sets. Leaves it on.
 
-## What happens
+## Use it
 
-1. When the setting sun drops to `from_level`, the light turns on at `min_brightness`.
-2. As the sun sinks, the light brightens on an ease-in curve until it reaches `max_brightness` at `to_level` (civil dusk).
-3. After that the app leaves the light alone. Turn it off whenever you like.
-
-There is no `start` trigger by default. The fade is always armed and runs every evening.
-
-```{python}
-#| echo: false
-#| fig-cap: "Brightness against sun elevation with the default settings. Time runs left to right as the sun sets."
-h.fade_chart(S)
-```
-
-## Add it
+Add to `apps.yaml`:
 
 ```{python}
 #| echo: false
@@ -38,7 +26,9 @@ h.fade_chart(S)
 h.usage_yaml(sunset_fade)
 ```
 
-`light` is the only required setting.
+- Required: `light`.
+- Runs: every evening.
+- Test event: `<app name>_start`.
 
 ## Settings
 
@@ -48,11 +38,37 @@ h.usage_yaml(sunset_fade)
 h.settings_table(S)
 ```
 
-Unknown settings are an error, so a typo stops the app from loading instead of being ignored.
+Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 
-## Recipes
+## What it does
 
-Start later and finish darker, for a room with good daylight:
+| Sun | Light |
+|---|---|
+| Above `from_level` | Untouched |
+| Reaches `from_level` | On at `min_brightness` |
+| Between `from_level` and `to_level` | Brightens, slowly at first |
+| Reaches `to_level` | Reaches `max_brightness`. The app stops changing it. |
+| Rising | Untouched |
+
+```{python}
+#| echo: false
+#| fig-cap: "Brightness against sun elevation, default settings. Time runs left to right."
+h.fade_chart(S)
+```
+
+## Examples
+
+**Softer light**
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  max_brightness: 30
+```
+
+**Start later, finish darker** (room with good daylight)
 
 ```yaml
 living_room_sunset:
@@ -63,13 +79,17 @@ living_room_sunset:
   to_level: -8
 ```
 
-A softer evening light:
+**Turn off when fully dark**
 
 ```yaml
-  max_brightness: 30
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  off_level: -18
 ```
 
-Several lights: add one entry per light, each with its own name.
+**Two lights**
 
 ```yaml
 living_room_sunset:
@@ -86,11 +106,20 @@ hallway_sunset:
 
 ## Test it
 
-In Home Assistant, go to **Developer Tools > Events**, enter `<app name>_start` (for example `living_room_sunset_start`) as the event type and select **Fire event**. This updates the light now. Outside the dusk window the AppDaemon log says `outside fade, nothing to do`.
+1. **Developer tools > Events**.
+2. Event type: `<app name>_start`, e.g. `living_room_sunset_start`.
+3. **Fire event**.
 
-## Good to know
+| When | Result |
+|---|---|
+| Dusk | Light updates |
+| Morning | Log: `skip: sun rising` |
+| Afternoon | Log: `skip: short of ramp_from` |
+| Night | Log: `skip: past to_level` |
 
-- The app only raises brightness. Turn the light up by hand and the fade leaves it there.
-- Turning the light off by hand during the fade does not stop it. The next update turns it back on. A little past `to_level` the fade stops, and the light stays as you leave it.
-- The app ignores the sun while it is rising, so a morning with the same elevations does nothing.
-- Restarting AppDaemon during the fade is safe. It picks up at the next elevation update.
+## Notes
+
+- Restart during the fade: carries on at the next sun update.
+- With `off_level`: turning the light back on afterwards lasts only until the next sun update, until about midnight.
+- Manual changes: [Manual control](manual-control.qmd).
+- Problems: [Light app troubleshooting](light-troubleshooting.qmd).

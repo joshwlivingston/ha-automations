@@ -1,0 +1,37 @@
+---
+title: Light app troubleshooting
+---
+
+For problems with loading or deploys, see [Troubleshooting](../../user-guide/troubleshooting.qmd).
+
+## The app does not load
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Input should be less than or equal to 100` | A brightness over 100 | Use 0 to 100 |
+| `Input should be greater than or equal to 0` | A negative brightness or `off_transition` | Use 0 or more |
+| `from_level and to_level must differ` | Both levels are the same | Change one |
+
+## The light does nothing
+
+- Fire the test event. A `skip arm` or `skip` line gives the reason. See [Light app log](light-log.qmd).
+- `skip arm: past from_level`: the sun was already past `from_level` at the start time. For Sunrise Fade in summer, set an earlier `start`.
+- `skip: sun rising` or `skip: sun falling`: you fired the test event at the wrong time of day for this app. Fire it during the fade.
+- `skip: not armed`: the app has start triggers and none has fired today. Fire the test event, or wait for the trigger.
+- `no sun reading`: the Sun integration is missing or disabled. Add it under **Settings > Devices & services**.
+- The light's entity ID in `light` is wrong. Check it under **Settings > Devices & services > Entities**.
+- The light does not support brightness. Light apps need dimmable lights.
+- The light is unavailable in Home Assistant. Check it responds from its own page.
+
+## The light does the wrong thing
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Light will not get dimmer | Light apps never lower brightness | Turn it down after the fade, or lower `max_brightness` |
+| Light turns back on after you turn it off | The fade is still running | See [Manual control](manual-control.qmd), or disable the app |
+| Light turns off when you turn it on at night | App without start triggers is past `off_level` | See [Manual control](manual-control.qmd) |
+| Light jumps instead of fading | Some lights ignore transitions | Nothing to fix in the app. Check the light's integration. |
+| Fade starts too early or late | Levels do not suit the room | See [Sun levels](sun-levels.qmd) |
+| Sunrise fade did not run after a restart | Apps with start triggers stop on restart | Fire the test event |
+| First step is bright | `min_brightness` is too high for the bulb | Lower `min_brightness` |
+| Light never visibly comes on | `min_brightness` is too low for the bulb | Raise `min_brightness` |

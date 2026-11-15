@@ -1,0 +1,42 @@
+---
+title: Read the log
+guide-section: Use it
+---
+
+Open **Settings > Add-ons > AppDaemon > Log**.
+
+## Lines
+
+Each line starts with the app's name from `apps.yaml`:
+
+```
+INFO <app name>: <action>: <reason>; <details>
+```
+
+| Line | Meaning |
+|---|---|
+| `load: init` | The app loaded. Lists its settings. |
+| `check: start trigger` | Something started the app, such as a set time or its test event |
+| An error naming the app | The app did not load. See [Troubleshooting](troubleshooting.qmd). |
+
+Each app group lists its own lines. Lights: [Light app log](../docs/apps/light-log.qmd).
+
+## More detail
+
+Some lines are hidden at the default log level. To see them for one app, add `log_level: DEBUG` to its entry in `apps.yaml`:
+
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+  log_level: DEBUG
+```
+
+Remove the line when you are done.
+
+## From your computer
+
+```sh
+ssh root@homeassistant.local ha addons logs a0d7b954_appdaemon
+```

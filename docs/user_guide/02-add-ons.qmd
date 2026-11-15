@@ -1,0 +1,51 @@
+---
+title: Install the add-ons
+guide-section: Get started
+---
+
+Both are in **Settings > Add-ons > Add-on store**.
+
+## AppDaemon
+
+1. Search for **AppDaemon**. Select **Install**.
+2. Turn on **Start on boot** and **Watchdog**.
+3. Select **Start**.
+
+Leave its configuration alone. Deploys set what the apps need.
+
+## Advanced SSH & Web Terminal
+
+Deploys log in through this add-on.
+
+1. Search for **Advanced SSH & Web Terminal**. Select **Install**.
+2. On your home computer, get its public key:
+
+   ```sh
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+   No key? Make one with `ssh-keygen -t ed25519`, accept the defaults, then run the `cat` command again.
+
+3. In the add-on's **Configuration** tab, add the key under `authorized_keys`:
+
+   ```yaml
+   ssh:
+     username: root
+     authorized_keys:
+       - ssh-ed25519 AAAA... you@computer
+   ```
+
+   The examples in these docs use the username `root`. Any username works if you use the same one in `HA_SSH`.
+
+4. Select **Save**, then **Start**. Turn on **Start on boot**.
+5. On your home computer, check that you can log in without a password:
+
+   ```sh
+   ssh root@homeassistant.local "echo it works"
+   ```
+
+   If `homeassistant.local` does not resolve, use the box's IP address.
+
+## Next
+
+[Create your config repo](config-repo.qmd).

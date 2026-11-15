@@ -14,7 +14,7 @@ always the sun, so levels are sun elevation in degrees.
 
 Testing
 -------
-Settings > Tools > Events, Event type `<app name>_start`, e.g. `bedroom_sunrise_start` > Fire event
+Developer tools > Events, Event type `<app name>_start`, e.g. `bedroom_sunrise_start` > Fire event
 """
 from typing import ClassVar
 
@@ -26,13 +26,13 @@ from ha_automations.triggers import Daily, TriggerConfig
 
 
 class SunriseSettings(LightFadeSettings):
-    detector: Sun = Field(Sun(), description="always the sun")
+    detector: Sun = Field(Sun(), description="Uses the sun's elevation")
     start: tuple[TriggerConfig, ...] = Field(
-        (Daily(daily="05:45:00"),), description="when to check if it is dark"
+        (Daily(daily="05:45:00"),), description="When to check if it is still dark"
     )
-    from_level: float = Field(-6, description="civil dawn, below which the light turns on")
-    to_level: float = Field(0, description="sunrise, max brightness")
-    off_level: float | None = Field(4, description="a little after sunrise, light turns off")
+    from_level: float = Field(-6, description="Civil dawn. The light turns on if the sun is below this at the start time")
+    to_level: float = Field(0, description="Sunrise. The light reaches full brightness")
+    off_level: float | None = Field(4, description="A little after sunrise. The light turns off")
 
 
 class SunriseFade(LightFadeApp):

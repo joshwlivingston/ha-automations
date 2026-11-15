@@ -16,18 +16,23 @@ accent_color:
 
 hero:
   name: ha-automations
-  tagline: Home Assistant automations in Python, tested and run by AppDaemon.
+  tagline: Automations for Home Assistant, configured in one file.
   badges: false
 
 sections:
   - title: Apps
     dir: docs/apps
+    sidebar_groups:
+      - section: Lights
+        contents: [sunrise-fade.qmd, sunset-fade.qmd, light-fade.qmd]
+      - section: Using light apps
+        contents: [sun-levels.qmd, start-triggers.qmd, manual-control.qmd, light-log.qmd, light-troubleshooting.qmd]
 
 user_guide: docs/user_guide
 
 navbar_order:
-  - Apps
   - User Guide
+  - Apps
   - Reference
   - Changelog
 
@@ -42,7 +47,7 @@ changelog:
 
 reference:
   - title: Apps
-    desc: AppDaemon apps and their settings. Each app page in the Apps section explains them in full.
+    desc: Apps and their settings. The Apps pages cover them for users.
     contents:
       - apps.light_fade.LightFadeApp
       - apps.light_fade.LightFadeSettings
@@ -52,7 +57,7 @@ reference:
       - apps.sunset_fade.SunsetSettings
 
   - title: Fades
-    desc: The fade logic. No Home Assistant imports.
+    desc: Fade logic and constants.
     contents:
       - fades.LightFade
       - fades.brightness_at
@@ -65,7 +70,7 @@ reference:
       - fades.END_MARGIN
 
   - title: Curves
-    desc: Easing and interpolation math.
+    desc: Fade curve math.
     contents:
       - curves.progress
       - curves.ease_in
@@ -73,7 +78,7 @@ reference:
       - curves.clamp
 
   - title: Detectors
-    desc: Light level sources that fades read from.
+    desc: Light level sources.
     contents:
       - detectors.Detector
       - detectors.Reading
@@ -84,7 +89,7 @@ reference:
       - solar.parse_sun
 
   - title: Triggers
-    desc: Triggers that start fades.
+    desc: Start triggers.
     contents:
       - triggers.Trigger
       - triggers.Daily
@@ -92,13 +97,13 @@ reference:
       - triggers.TriggerConfig
 
   - title: Lights
-    desc: Lights that fades write to.
+    desc: Light control.
     contents:
       - lights.Light
       - lights.HassLight
 
   - title: Config
-    desc: Base model for settings read from apps.yaml.
+    desc: Base settings model.
     contents:
       - config.Config
 

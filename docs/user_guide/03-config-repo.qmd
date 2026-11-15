@@ -1,0 +1,21 @@
+---
+title: Create your config repo
+guide-section: Get started
+---
+
+1. Open [ha-automations-config-template](https://github.com/joshwlivingston/ha-automations-config-template).
+2. Select **Use this template > Create a new repository**.
+3. Choose **Private**. `apps.yaml` names the devices in your home.
+
+## What is in it
+
+| File | What it is |
+|---|---|
+| `apps.yaml` | Your apps and their settings, with an example of each app |
+| `.github/workflows/deploy.yml` | The deploy workflow |
+
+Edit only the workflow's schedule. See [Set up deploys](deploy.qmd).
+
+## Next
+
+[Set up deploys](deploy.qmd).

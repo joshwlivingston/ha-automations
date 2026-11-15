@@ -1,6 +1,6 @@
 ---
 title: Light Fade
-description: Build your own fade. Choose the levels, triggers and direction.
+description: A fade with your own levels, start times and direction.
 ---
 
 ```{python}
@@ -14,23 +14,11 @@ from ha_automations.apps import light_fade
 S = light_fade.LightFadeSettings
 ```
 
-The general fade that [Sunrise Fade](sunrise-fade.qmd) and [Sunset Fade](sunset-fade.qmd) are built on. Use it when neither default fits. It brightens a light as a detector's level moves from `from_level` to `to_level`, and can turn the light off at `off_level`.
+A fade with your own levels, start times and direction. Sunrise Fade and Sunset Fade are Light Fade with preset settings.
 
-## How a fade works
+## Use it
 
-- **Detector.** Where the level comes from. The only detector so far is the sun (`kind: sun`), whose level is its elevation in degrees.
-- **Direction.** If `to_level` is above `from_level` the fade runs as the level rises, like a sunrise. If it is below, the fade runs as the level falls, like a sunset. Readings moving the other way are ignored.
-- **Brightness.** From `min_brightness` at the start of the ramp to `max_brightness` at `to_level`, on an ease-in curve. The fade never lowers the light.
-- **Off.** If `off_level` is set, the light fades off over `off_transition` seconds once the level reaches it.
-- **Start.** With no `start` triggers the fade is always armed and acts whenever the level is between `from_level` and `to_level`. With triggers, it does nothing until a trigger fires while the level is short of `from_level`. It then ramps from that level, and stays armed until `off_level`.
-
-```{python}
-#| echo: false
-#| fig-cap: "A rising fade with from_level -6, to_level 0, off_level 4 and no start triggers."
-h.fade_chart(S, from_level=-6, to_level=0, off_level=4)
-```
-
-## Add it
+Add to `apps.yaml`:
 
 ```{python}
 #| echo: false
@@ -38,7 +26,9 @@ h.fade_chart(S, from_level=-6, to_level=0, off_level=4)
 h.usage_yaml(light_fade)
 ```
 
-`light`, `detector`, `from_level` and `to_level` are required.
+- Required: `light`, `detector`, `from_level`, `to_level`.
+- `detector`: always `kind: sun`.
+- Test event: `<app name>_start`.
 
 ## Settings
 
@@ -48,22 +38,46 @@ h.usage_yaml(light_fade)
 h.settings_table(S)
 ```
 
-Unknown settings are an error, so a typo stops the app from loading instead of being ignored.
+Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 
-### Triggers
+`start` entries:
 
-`start` is a list. Each entry is one of:
-
-| trigger | fires |
+| Entry | Fires |
 |---|---|
-| `- daily: "05:45:00"` | once a day at that time. Any time string AppDaemon's `run_daily` accepts works, such as `"sunrise - 00:30:00"`. |
-| `- event: bedroom_alarm` | when that Home Assistant event is fired. |
+| `- daily: "05:45:00"` | Every day at that time. Sun-relative works: `"sunrise - 00:30:00"`. |
+| `- event: bedroom_alarm` | When that Home Assistant event fires |
 
-Every app also listens for its own test event, `<app name>_start`, whatever `start` says.
+See [Start triggers](start-triggers.qmd).
 
-## Recipes
+## What it does
 
-A fade that starts with an alarm and turns off a little after sunrise:
+| Levels | Runs as the sun |
+|---|---|
+| `to_level` above `from_level` | Rises |
+| `to_level` below `from_level` | Sets |
+
+| `start` | Runs |
+|---|---|
+| None | Whenever the sun is between `from_level` and `to_level` |
+| One or more | After a trigger, if the sun has not reached `from_level`. Fades from the sun's level at that moment. |
+
+| Sun | Light |
+|---|---|
+| Reaches `from_level` | On at `min_brightness` |
+| Between `from_level` and `to_level` | Brightens, slowly at first |
+| Reaches `to_level` | At `max_brightness` |
+| Reaches `off_level`, if set | Fades off over `off_transition` seconds |
+| Moving the other way | Untouched |
+
+```{python}
+#| echo: false
+#| fig-cap: "A rising fade: from_level -6, to_level 0, off_level 4, no start triggers."
+h.fade_chart(S, from_level=-6, to_level=0, off_level=4)
+```
+
+## Examples
+
+**Start with an alarm, off a little after sunrise**
 
 ```yaml
 bedroom_alarm_fade:
@@ -79,7 +93,7 @@ bedroom_alarm_fade:
     - event: bedroom_alarm
 ```
 
-A dusk light that turns off once it is dark (nautical dusk):
+**Porch light on at sunset, off at nautical dusk**
 
 ```yaml
 porch_dusk:
@@ -96,6 +110,16 @@ porch_dusk:
 
 ## Test it
 
-In Home Assistant, go to **Developer Tools > Events**, enter `<app name>_start` as the event type and select **Fire event**. This runs the same check as a `start` trigger. If nothing happens, the AppDaemon log says `outside fade, nothing to do`.
+1. **Developer tools > Events**.
+2. Event type: `<app name>_start`, e.g. `porch_dusk_start`.
+3. **Fire event**.
 
-See [How fades work](../../user-guide/fades.qmd) for the details of each step.
+Fire it during the fade and the light updates. Fire it outside the fade and the log says why it did nothing. See [Light app log](light-log.qmd).
+
+## Notes
+
+- No `start`: runs every day. Restart is safe.
+- With `start`: restart during the fade stops it until the next trigger.
+- No `start`, with `off_level`: turning the light back on after `off_level` lasts only until the next sun update.
+- Manual changes: [Manual control](manual-control.qmd).
+- Problems: [Light app troubleshooting](light-troubleshooting.qmd).

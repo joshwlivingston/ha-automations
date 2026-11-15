@@ -12,8 +12,6 @@ import _helpers as h
 from ha_automations.apps import light_fade, sunrise_fade, sunset_fade
 ```
 
-Each entry in `apps.yaml` is one instance of an app. To run an app more than once, for example on several lights, add one entry per instance, each with its own name.
-
 ## Lights
 
 ```{python}
@@ -25,14 +23,24 @@ h.compare_table([
     ("Sunset Fade", "sunset-fade.qmd", sunset_fade.SunsetSettings,
      "Brightens a light as the sun sets and leaves it on."),
     ("Light Fade", "light-fade.qmd", light_fade.LightFadeSettings,
-     "The general fade. You choose the levels, triggers and direction."),
+     "A fade with your own levels, start times and direction."),
 ])
 ```
 
-Each light app controls one light. Levels are sun elevation in degrees: 0 is the horizon, negative is below it.
+Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 
-## Which app?
+| Want | App |
+|---|---|
+| Wake up to light | [Sunrise Fade](sunrise-fade.qmd) |
+| Light a room before dark | [Sunset Fade](sunset-fade.qmd) |
+| Other levels, times or direction | [Light Fade](light-fade.qmd) |
 
-- **Waking up**: [Sunrise Fade](sunrise-fade.qmd).
-- **Evenings**: [Sunset Fade](sunset-fade.qmd).
-- **Something else**, such as different levels or an alarm trigger: [Light Fade](light-fade.qmd). Sunrise Fade and Sunset Fade are Light Fade with different defaults, so every setting on the Light Fade page works for them too.
+### Using light apps
+
+| Page | Covers |
+|---|---|
+| [Sun levels](sun-levels.qmd) | What levels mean, picking them |
+| [Start triggers](start-triggers.qmd) | Start times, alarms |
+| [Manual control](manual-control.qmd) | Using a light while an app controls it |
+| [Light app log](light-log.qmd) | Log lines |
+| [Light app troubleshooting](light-troubleshooting.qmd) | Light not doing what you expect |

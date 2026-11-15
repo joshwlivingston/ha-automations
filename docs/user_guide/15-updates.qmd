@@ -1,0 +1,26 @@
+---
+title: Updates
+guide-section: Use it
+---
+
+## New releases
+
+- Installed automatically by the scheduled check: within 15 minutes by day, an hour overnight.
+- What changed: [Releases](https://github.com/joshwlivingston/ha-automations/releases), or **Changelog** in the menu.
+- A release may rename or change settings. Check the changelog and update `apps.yaml`.
+
+## Tasks
+
+| Task | How |
+|---|---|
+| See which release runs | Latest **Deploy** run under **Actions**. The deploy step is named after the release, e.g. **Deploy v0.1.0**. |
+| Install a specific release | Open **Actions > Deploy > Run workflow**, enter a **version** (e.g. `v0.1.0`), select **Run workflow** |
+| Redeploy with no changes | **Run workflow** with **force** checked |
+| Pause updates | **Actions > Deploy > ... > Disable workflow**. Pushes stop deploying too. |
+| Resume updates | **Actions > Deploy > Enable workflow** |
+
+## Roll back
+
+1. Install the older release.
+2. Disable the workflow. Otherwise the next scheduled check reinstalls the latest release.
+3. Enable it once a fixed release is out.

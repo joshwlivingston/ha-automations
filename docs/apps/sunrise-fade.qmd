@@ -14,21 +14,11 @@ from ha_automations.apps import sunrise_fade
 S = sunrise_fade.SunriseSettings
 ```
 
-Turns a light on dim before dawn and brightens it as the sun rises. Once it is light out, the light fades off.
+Turns a light on dim before dawn. Brightens it as the sun rises. Turns it off after sunrise.
 
-## What happens
+## Use it
 
-1. At the `start` time, the app checks the sun. If the sun is rising and still below `from_level`, the fade arms and the light turns on at `min_brightness`. If it is already light, the app does nothing that day.
-2. As the sun rises, the light brightens on an ease-in curve, gently at first, until it reaches `max_brightness` at `to_level` (sunrise).
-3. When the sun reaches `off_level`, the light fades off over `off_transition` seconds.
-
-```{python}
-#| echo: false
-#| fig-cap: "Brightness against sun elevation with the default settings. The ramp starts at the sun's elevation when the start trigger fires."
-h.fade_chart(S)
-```
-
-## Add it
+Add to `apps.yaml`:
 
 ```{python}
 #| echo: false
@@ -36,7 +26,9 @@ h.fade_chart(S)
 h.usage_yaml(sunrise_fade)
 ```
 
-`light` is the only required setting.
+- Required: `light`.
+- Runs: mornings, if still dark at the `start` time.
+- Test event: `<app name>_start`.
 
 ## Settings
 
@@ -46,11 +38,27 @@ h.usage_yaml(sunrise_fade)
 h.settings_table(S)
 ```
 
-Unknown settings are an error, so a typo stops the app from loading instead of being ignored.
+Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd). `start`: see [Start triggers](start-triggers.qmd).
 
-## Recipes
+## What it does
 
-Start the fade from your phone alarm instead of a fixed time. Fire the `bedroom_alarm` event from a Home Assistant automation when the alarm rings:
+| When | Light |
+|---|---|
+| `start` time, sun below `from_level` | On at `min_brightness` |
+| `start` time, sun past `from_level` | Untouched until the next day |
+| Sun rising toward `to_level` | Brightens, slowly at first |
+| Sun reaches `to_level` | At `max_brightness` |
+| Sun reaches `off_level` | Fades off over `off_transition` seconds |
+
+```{python}
+#| echo: false
+#| fig-cap: "Brightness against sun elevation, default settings. The fade starts wherever the sun is at the start time."
+h.fade_chart(S)
+```
+
+## Examples
+
+**Start with a phone alarm.** Automation that fires `bedroom_alarm`: see [Start triggers](start-triggers.qmd).
 
 ```yaml
 bedroom_sunrise:
@@ -61,29 +69,55 @@ bedroom_sunrise:
     - event: bedroom_alarm
 ```
 
-Keep the fixed time as a fallback by listing both triggers:
+**Alarm, with a fixed time as fallback**
 
 ```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
   start:
     - daily: "06:30:00"
     - event: bedroom_alarm
 ```
 
-A brighter wake-up that stays on after sunrise:
+**Start 30 minutes before sunrise, all year**
 
 ```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
+  start:
+    - daily: "sunrise - 00:30:00"
+```
+
+**Brighter, stays on after sunrise**
+
+```yaml
+bedroom_sunrise:
+  module: sunrise_fade
+  class: SunriseFade
+  light: light.bedroom_lamp
   max_brightness: 80
   off_level: null
 ```
 
 ## Test it
 
-In Home Assistant, go to **Developer Tools > Events**, enter `<app name>_start` (for example `bedroom_sunrise_start`) as the event type and select **Fire event**. This runs the same check as the `start` trigger. Outside the dawn window the AppDaemon log says `outside fade, nothing to do`.
+1. **Developer tools > Events**.
+2. Event type: `<app name>_start`, e.g. `bedroom_sunrise_start`.
+3. **Fire event**.
 
-## Good to know
+| When | Result |
+|---|---|
+| Before dawn | Light turns on |
+| After `from_level` | Log: `skip arm: past from_level` |
+| Evening | Log: `skip arm: sun falling` |
 
-- The app only raises brightness. Turn the light up by hand and the fade leaves it there.
-- Turning the light off by hand during the fade does not stop it. The next update turns it back on.
-- The light changes each time Home Assistant updates the sun's elevation, with a smooth transition between steps.
-- Restarting AppDaemon during the fade disarms it until the next `start`. Fire the test event to resume.
-- Levels are compared with the sun's elevation from `sun.sun`, so the times follow your location and the season.
+## Notes
+
+- Summer: the sun may pass `from_level` before the `start` time. Use an earlier `start`, or `"sunrise - 00:30:00"`.
+- Restart during the fade: stops until the next `start`. Fire the test event to resume.
+- Manual changes: [Manual control](manual-control.qmd).
+- Problems: [Light app troubleshooting](light-troubleshooting.qmd).

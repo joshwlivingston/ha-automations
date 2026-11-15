@@ -1,0 +1,52 @@
+---
+title: Deploy by hand
+guide-section: Use it
+---
+
+Optional. Deploy from your own computer instead of the workflow. Useful without a runner, or to test a change.
+
+Needs: `git`, `ssh`, `rsync` and `python3` on your computer, and passwordless SSH to Home Assistant. See [Install the add-ons](add-ons.qmd).
+
+## Steps
+
+1. Clone ha-automations and check out the release to deploy:
+
+   ```sh
+   git clone https://github.com/joshwlivingston/ha-automations
+   cd ha-automations
+   git checkout v0.1.0
+   ```
+
+2. Create `.deploy.env` in that folder:
+
+   ```sh
+   HA_SSH=root@homeassistant.local
+   APPS_YAML=../ha-automations-config/apps.yaml
+   REPO_URL=https://github.com/joshwlivingston/ha-automations
+   ```
+
+3. Deploy:
+
+   ```sh
+   scripts/deploy.sh
+   ```
+
+To deploy another release, check it out and run the script again.
+
+The script prints the command to read the AppDaemon log when it finishes.
+
+## Settings
+
+Set these in `.deploy.env` or as environment variables.
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `HA_SSH` | Required | SSH login, e.g. `root@homeassistant.local` |
+| `APPS_YAML` | Required | Path to your `apps.yaml`. Relative paths start from the ha-automations folder, not your config repo. |
+| `REPO_URL` | Required | Where to install from, e.g. `https://github.com/joshwlivingston/ha-automations` |
+| `HA_SSH_PORT` | `22` | SSH port |
+| `ADDON_SLUG` | `a0d7b954_appdaemon` | AppDaemon add-on ID. Change only if you installed AppDaemon from another add-on store. |
+| `APPS_DIR` | The AppDaemon add-on's `apps` folder | Where `apps.yaml` goes on the box |
+| `DEV` | Unset | `1` allows test builds (`vX.Y.Z.9NNN`). Test builds are not releases. |
+| `FORCE` | Unset | `1` deploys even if the box already runs this release and `apps.yaml` |
+| `NO_RESTART` | Unset | `1` skips the AppDaemon restart and prints the command to restart later |

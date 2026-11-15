@@ -1,27 +1,43 @@
 ---
 title: Overview
-guide-section: Get Started
+guide-section: Get started
 ---
 
-ha-automations runs inside Home Assistant OS as apps for the AppDaemon add-on. You choose apps and settings in an `apps.yaml` file, and a deploy script installs a tagged release onto your Home Assistant box.
+ha-automations is a set of automations for Home Assistant, called apps. You choose which apps run, and their settings, in one file: `apps.yaml`. A GitHub workflow installs them on your Home Assistant box.
+
+## Apps
+
+See [Apps](../docs/apps/index.qmd) for the full list.
+
+### Lights
+
+| App | What it does |
+|---|---|
+| [Sunrise Fade](../docs/apps/sunrise-fade.qmd) | Turns a light on dim before dawn. Brightens it as the sun rises. Turns it off after sunrise. |
+| [Sunset Fade](../docs/apps/sunset-fade.qmd) | Brightens a light as the sun sets. Leaves it on. |
+| [Light Fade](../docs/apps/light-fade.qmd) | A fade with your own levels, start times and direction. |
 
 ## What you need
 
-- Home Assistant OS.
-- The [AppDaemon](https://community.home-assistant.io/t/home-assistant-community-add-on-appdaemon-4/163259) add-on.
-- The [Advanced SSH & Web Terminal](https://community.home-assistant.io/t/home-assistant-community-add-on-ssh-web-terminal/33820) add-on, set up with an SSH key. The deploy script uses it.
-- A computer on your home network with `git`, `ssh` and `rsync`. It runs deploys, either as a GitHub Actions self-hosted runner or by hand.
-- The devices your apps control. Each app page lists what it needs.
+- Home Assistant OS. Container and Core installs have no add-ons, so they cannot run the apps.
+- The AppDaemon add-on.
+- The Advanced SSH & Web Terminal add-on. The basic SSH add-on does not work.
+- A GitHub account.
+- A computer on your home network that stays on, with `git`, `ssh` and `rsync`. A Raspberry Pi, NAS or old laptop works.
+- The devices each app controls. Each app's page lists what it needs.
 
-## Code and config are separate
+## The parts
 
-| | holds | who owns it |
+| Part | What it is | Where it lives |
 |---|---|---|
-| This repo | the apps, tested and released as tagged versions | public, or your fork |
-| Your config repo | your `apps.yaml` and a deploy workflow | private, yours |
+| `apps.yaml` | Which apps run, and their settings | Your private config repo on GitHub |
+| Deploy workflow | Copies `apps.yaml` to Home Assistant and installs the apps | Your config repo; runs on your home computer |
+| AppDaemon | Runs the apps | An add-on in Home Assistant |
 
-AppDaemon installs the package from the release tarball on GitHub, so your Home Assistant box never needs `git`. Your `apps.yaml` says which apps run and what they control.
+## Setup
 
-## Next
-
-[Create your config repo](config-repo.qmd).
+1. [Install the add-ons](add-ons.qmd).
+2. [Create your config repo](config-repo.qmd).
+3. [Set up deploys](deploy.qmd).
+4. [Add your first app](first-app.qmd).
+5. [Check that it works](check.qmd).

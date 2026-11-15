@@ -39,7 +39,7 @@ def _fmt_trigger(trigger: BaseModel) -> str:
 
 def settings_table(cls: type[BaseModel]) -> None:
     """Print a Markdown table of the settings in `cls`. Use with `output: asis`."""
-    print("| setting | default | meaning |")
+    print("| Setting | Default | Meaning |")
     print("|---|---|---|")
     for name, field in cls.model_fields.items():
         print(f"| `{name}` | {_fmt(field.default)} | {field.description} |")
@@ -50,20 +50,12 @@ def compare_table(apps: list[tuple[str, str, type[LightFadeSettings], str]]) -> 
 
     Use with `output: asis`.
     """
-    print("| app | what it does | start | from_level | to_level | off_level |")
+    print("| App | What it does | `start` | `from_level` | `to_level` | `off_level` |")
     print("|---|---|---|---|---|---|")
     for title, link, cls, summary in apps:
         f = cls.model_fields
         cells = [_fmt(f[name].default) for name in ("start", "from_level", "to_level", "off_level")]
         print(f"| [{title}]({link}) | {summary} | {' | '.join(cells)} |")
-
-
-def constants_table(module: ModuleType, meanings: dict[str, str]) -> None:
-    """Print a Markdown table of module constants and their current values. Use with `output: asis`."""
-    print("| constant | value | meaning |")
-    print("|---|---|---|")
-    for name, meaning in meanings.items():
-        print(f"| `{name}` | `{getattr(module, name)}` | {meaning} |")
 
 
 def usage_yaml(module: ModuleType) -> None:

@@ -1,0 +1,39 @@
+---
+title: Sun levels
+---
+
+Light app levels are sun elevation: degrees above the horizon, for your location.
+
+| Level | Name | Outdoors |
+|---|---|---|
+| `6` | Low sun | About an hour from the horizon |
+| `0` | Sunrise, sunset | Sun on the horizon |
+| `-6` | Civil dawn, civil dusk | Light enough to see |
+| `-12` | Nautical dawn, nautical dusk | Dark; horizon visible |
+| `-18` | Astronomical dawn, astronomical dusk | Fully dark |
+
+## Settings
+
+| Setting | Sunrise apps | Sunset apps |
+|---|---|---|
+| `from_level` | Light on. Below the horizon. | Light on. Above the horizon. |
+| `to_level` | Full brightness. Higher than `from_level`. | Full brightness. Lower than `from_level`. |
+| `off_level` | Light off. Higher than `to_level`. | Light off. Lower than `to_level`. |
+
+- Set `to_level` above `from_level` to fade as the sun rises, below to fade as it sets.
+- `from_level` and `to_level` must differ.
+
+## Seasons
+
+- Levels follow the sun. Leave them alone when the seasons change.
+- Near the poles the sun may not reach a level some days. The fade does nothing those days.
+
+## Picking levels
+
+| Want | Change |
+|---|---|
+| Sunset light on earlier | Raise `from_level` |
+| Sunrise light on earlier | Lower `from_level` |
+| Full brightness sooner | Move `to_level` toward `from_level` |
+| Slower fade | Move them apart |
+| Off sooner after sunrise | Lower `off_level` |

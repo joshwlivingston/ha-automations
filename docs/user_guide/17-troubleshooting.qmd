@@ -1,0 +1,43 @@
+---
+title: Troubleshooting
+guide-section: Use it
+---
+
+Start with the AppDaemon log: **Settings > Add-ons > AppDaemon > Log**. Then fire the app's test event, if it has one, and read the log again. See [Read the log](log.qmd).
+
+## The app does not load
+
+No `load: init` line for the app. The log shows an error naming the app and the setting.
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Extra inputs are not permitted` | A misspelled setting, or one the app does not have | Check the app's settings table |
+| `Field required` | A required setting is missing | Add it |
+| `Input should be a valid string` on a time | The time is not in quotes | Write `"18:30:00"` |
+| `Input should be less than or equal to ...`, `greater than or equal to ...` | A value out of range | Check the range on the app's page |
+| A YAML error with a line number | Bad indentation or a missing `:` | Fix the line in `apps.yaml` |
+
+## The deploy fails
+
+Open the failed run under **Actions** in your config repo.
+
+| Message or symptom | Fix |
+|---|---|
+| Run stuck on **Waiting for a runner** | The runner is offline. Start it, and check **Settings > Actions > Runners**. |
+| `no v* tags` or the **Resolve version** step fails | `PACKAGE_REPO` is wrong or unset. Set it to `joshwlivingston/ha-automations`. |
+| `Permission denied (publickey)` | The runner cannot log in to Home Assistant. Add its key to the SSH add-on. See [Install the add-ons](add-ons.qmd). |
+| `Could not resolve hostname` | `HA_SSH` is wrong, or `homeassistant.local` does not resolve on the runner. Use the box's IP address. |
+| `rsync: command not found` | Install `rsync` on the runner computer |
+| `no SUPERVISOR_TOKEN in SSH session` | You are logging in through the basic SSH add-on. Use Advanced SSH & Web Terminal. |
+| `tag vX.Y.Z not found` | That release does not exist. Check the version you entered. |
+| `vX.Y.Z.9NNN is a dev tag` | That is a test build, not a release. Enter a release such as `v0.1.0`. |
+| `Already running vX.Y.Z with this apps.yaml` | Not an error. Nothing changed. Run by hand with **force** to redeploy. |
+| `APPS_YAML not found` | By hand only: the path is relative to the ha-automations folder |
+
+## The app does nothing
+
+1. Check the app loaded: a `load: init` line with its name.
+2. Fire its test event, if it has one, and read the log.
+3. Check the entity IDs in its settings under **Settings > Devices & services > Entities**.
+4. Check the device works from its own page in Home Assistant.
+5. See the troubleshooting for the app's group. Lights: [Light app troubleshooting](../docs/apps/light-troubleshooting.qmd).

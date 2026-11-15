@@ -2,62 +2,26 @@
 title: ""
 ---
 
-```{python}
-#| include: false
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(next(p for p in Path.cwd().parents if (p / "great-docs.yml").exists()) / "docs"))
-import _helpers as h
-from ha_automations.apps import sunrise_fade, sunset_fade
-```
-
-ha-automations is a set of [AppDaemon](https://appdaemon.readthedocs.io/) apps for Home Assistant, written in Python and tested before each release. Pick an app, configure it in `apps.yaml`, and deploy.
+Automations for Home Assistant. Pick an app, add it to `apps.yaml`, push.
 
 ## Apps
 
 ### Lights
 
-::: {.grid}
+| App | Module | Class | Does |
+|---|---|---|---|
+| [Sunrise Fade](docs/apps/sunrise-fade.qmd) | `sunrise_fade` | `SunriseFade` | Turns a light on dim before dawn, brightens it to sunrise, turns it off |
+| [Sunset Fade](docs/apps/sunset-fade.qmd) | `sunset_fade` | `SunsetFade` | Brightens a light as the sun sets, leaves it on |
+| [Light Fade](docs/apps/light-fade.qmd) | `light_fade` | `LightFadeApp` | Fades a light with your own levels, start times and direction |
 
-::: {.g-col-12 .g-col-md-6}
-#### [Sunrise Fade](docs/apps/sunrise-fade.qmd)
+## Guide
 
-Turns a light on dim before dawn and brightens it as the sun rises, then turns it off once it is light out. A gentle wake-up for a bedroom.
+New here: [Get started](user-guide/overview.qmd).
 
-```{python}
-#| echo: false
-h.fade_chart(sunrise_fade.SunriseSettings, height=2.4)
-```
-:::
-
-::: {.g-col-12 .g-col-md-6}
-#### [Sunset Fade](docs/apps/sunset-fade.qmd)
-
-Brightens a light as the sun goes down, so the room never goes dark. Stays on for the evening.
-
-```{python}
-#| echo: false
-h.fade_chart(sunset_fade.SunsetSettings, height=2.4)
-```
-:::
-
-:::
-
-Need something else? [Light Fade](docs/apps/light-fade.qmd) is the general fade the two apps are built on. Choose your own levels, triggers and direction.
-
-## Get started
-
-1. Install the AppDaemon and Advanced SSH & Web Terminal add-ons. See [Overview](user-guide/overview.qmd).
-2. Create your private config repo from the [template](https://github.com/joshwlivingston/ha-automations-config-template). See [Config repo](user-guide/config-repo.qmd).
-3. Add an app to `apps.yaml`:
-
-   ```yaml
-   bedroom_sunrise:
-     module: sunrise_fade
-     class: SunriseFade
-     light: light.bedroom_lamp
-   ```
-
-4. Push to `main` and the config repo's workflow deploys the latest release. See [Deploy](user-guide/deploy.qmd).
-5. Check it loaded and fire a test event. See [Verify](user-guide/verify.qmd).
+| Page | Covers |
+|---|---|
+| [Get started](user-guide/overview.qmd) | Install, config repo, first app |
+| [apps.yaml](user-guide/apps-yaml.qmd) | Names, settings, running an app twice |
+| [Read the log](user-guide/log.qmd) | What your apps are doing |
+| [Updates](user-guide/updates.qmd) | New releases, rollback |
+| [Troubleshooting](user-guide/troubleshooting.qmd) | Load and deploy problems |
