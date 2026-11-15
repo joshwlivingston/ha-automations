@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
+- `scripts/deploy.sh` deploys dev tags (`vX.Y.Z.9xxx`) only with `DEV=1`, so you can test a build on the box before releasing it. Tags that are neither `vX.Y.Z` nor `vX.Y.Z.9xxx` are refused.
+
 ## [0.1.0] - 2026-11-14
 
 - Initial release.
