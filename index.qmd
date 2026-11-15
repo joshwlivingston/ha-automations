@@ -12,14 +12,16 @@ import _helpers as h
 from ha_automations.apps import sunrise_fade, sunset_fade
 ```
 
-ha-automations is a set of [AppDaemon](https://appdaemon.readthedocs.io/) apps for Home Assistant that fade your lights with the sun. Pick an app, give it a light, and deploy.
+ha-automations is a set of [AppDaemon](https://appdaemon.readthedocs.io/) apps for Home Assistant, written in Python and tested before each release. Pick an app, configure it in `apps.yaml`, and deploy.
 
 ## Apps
+
+### Lights
 
 ::: {.grid}
 
 ::: {.g-col-12 .g-col-md-6}
-### [Sunrise Fade](docs/apps/sunrise-fade.qmd)
+#### [Sunrise Fade](docs/apps/sunrise-fade.qmd)
 
 Turns a light on dim before dawn and brightens it as the sun rises, then turns it off once it is light out. A gentle wake-up for a bedroom.
 
@@ -30,7 +32,7 @@ h.fade_chart(sunrise_fade.SunriseSettings, height=2.4)
 :::
 
 ::: {.g-col-12 .g-col-md-6}
-### [Sunset Fade](docs/apps/sunset-fade.qmd)
+#### [Sunset Fade](docs/apps/sunset-fade.qmd)
 
 Brightens a light as the sun goes down, so the room never goes dark. Stays on for the evening.
 

@@ -1,10 +1,12 @@
 # ha-automations
 
-Home Assistant automations written in Python and run by the AppDaemon add-on. Lights fade with the sun. Changes are tested in CI and deployed to Home Assistant OS from a tagged release.
+Home Assistant automations written in Python and run by the AppDaemon add-on. Changes are tested in CI and deployed to Home Assistant OS from a tagged release.
 
 **Docs: https://joshwlivingston.github.io/ha-automations/**
 
 ## Apps
+
+### Lights
 
 - [Sunrise Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunrise-fade.html): turns a light on dim before dawn and brightens it as the sun rises.
 - [Sunset Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunset-fade.html): brightens a light as the sun sets.

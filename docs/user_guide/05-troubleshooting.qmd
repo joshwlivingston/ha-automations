@@ -20,8 +20,12 @@ The AppDaemon log shows a validation error naming the setting.
 - **Resolve version fails.** `PACKAGE_REPO` is wrong or unset. Set it to `joshwlivingston/ha-automations`, or your fork.
 - **APPS_YAML not found.** The path is relative to the root of this repo, not your config repo.
 
-## The light does nothing
+## The app does nothing
 
-- Fire the test event and read the log. `outside fade, nothing to do` means the sun is outside the app's levels right now, or moving the wrong way.
+Fire the app's test event and read the log. See [Verify](verify.qmd).
+
+### Light apps
+
+- `outside fade, nothing to do` means the sun is outside the app's levels right now, or moving the wrong way.
 - Sunrise Fade arms only if it is still dark at its `start` time. In summer, set an earlier `start`.
 - Check the entity id in `light`, and that the light supports brightness.

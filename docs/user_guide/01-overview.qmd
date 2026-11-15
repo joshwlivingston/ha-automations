@@ -11,7 +11,7 @@ ha-automations runs inside Home Assistant OS as apps for the AppDaemon add-on. Y
 - The [AppDaemon](https://community.home-assistant.io/t/home-assistant-community-add-on-appdaemon-4/163259) add-on.
 - The [Advanced SSH & Web Terminal](https://community.home-assistant.io/t/home-assistant-community-add-on-ssh-web-terminal/33820) add-on, set up with an SSH key. The deploy script uses it.
 - A computer on your home network with `git`, `ssh` and `rsync`. It runs deploys, either as a GitHub Actions self-hosted runner or by hand.
-- Lights in Home Assistant that support brightness.
+- The devices your apps control. Each app page lists what it needs.
 
 ## Code and config are separate
 
@@ -20,7 +20,7 @@ ha-automations runs inside Home Assistant OS as apps for the AppDaemon add-on. Y
 | This repo | the apps, tested and released as tagged versions | public, or your fork |
 | Your config repo | your `apps.yaml` and a deploy workflow | private, yours |
 
-AppDaemon installs the package from the release tarball on GitHub, so your Home Assistant box never needs `git`. Your `apps.yaml` says which apps run on which lights.
+AppDaemon installs the package from the release tarball on GitHub, so your Home Assistant box never needs `git`. Your `apps.yaml` says which apps run and what they control.
 
 ## Next
 

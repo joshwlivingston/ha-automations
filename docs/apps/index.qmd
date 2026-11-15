@@ -12,7 +12,9 @@ import _helpers as h
 from ha_automations.apps import light_fade, sunrise_fade, sunset_fade
 ```
 
-Each app controls one light. To run an app on several lights, add one entry per light to `apps.yaml`, each with its own name.
+Each entry in `apps.yaml` is one instance of an app. To run an app more than once, for example on several lights, add one entry per instance, each with its own name.
+
+## Lights
 
 ```{python}
 #| echo: false
@@ -27,7 +29,7 @@ h.compare_table([
 ])
 ```
 
-Levels are sun elevation in degrees: 0 is the horizon, negative is below it.
+Each light app controls one light. Levels are sun elevation in degrees: 0 is the horizon, negative is below it.
 
 ## Which app?
 

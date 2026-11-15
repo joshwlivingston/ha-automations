@@ -37,7 +37,7 @@ def _fmt_trigger(trigger: BaseModel) -> str:
     return ", ".join(f'{k}: "{v}"' for k, v in trigger.model_dump().items())
 
 
-def settings_table(cls: type[LightFadeSettings]) -> None:
+def settings_table(cls: type[BaseModel]) -> None:
     """Print a Markdown table of the settings in `cls`. Use with `output: asis`."""
     print("| setting | default | meaning |")
     print("|---|---|---|")

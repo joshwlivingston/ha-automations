@@ -16,7 +16,7 @@ accent_color:
 
 hero:
   name: ha-automations
-  tagline: Lights that follow the sun. Home Assistant automations, run by AppDaemon.
+  tagline: Home Assistant automations in Python, tested and run by AppDaemon.
   badges: false
 
 sections:
@@ -33,7 +33,7 @@ navbar_order:
 
 nav_icons:
   navbar:
-    Apps: lightbulb
+    Apps: blocks
     "User Guide": book-open
     Reference: code
 
