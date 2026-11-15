@@ -1113,7 +1113,7 @@ wheels = [
 
 [[package]]
 name = "ha-automations"
-version = "0.1.0.9003"
+version = "0.1.0.9004"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
@@ -1122,6 +1122,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "appdaemon" },
+    { name = "ha-automations-release" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1138,6 +1139,7 @@ requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "appdaemon", specifier = ">=4.5.16" },
+    { name = "ha-automations-release", editable = "tools/release" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "ruff", specifier = ">=0.17.5" },
@@ -1147,6 +1149,11 @@ docs = [
     { name = "great-docs", specifier = ">=0.17.0" },
     { name = "matplotlib", specifier = ">=3.11.2" },
 ]
+
+[[package]]
+name = "ha-automations-release"
+version = "0.1.0"
+source = { editable = "tools/release" }
 
 [[package]]
 name = "httpcore"
