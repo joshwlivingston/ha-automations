@@ -12,7 +12,7 @@ from ha_automations.fades import (
 
 class FakeDetector:
     label = "sun"
-    unit = "°"
+    unit = "deg"
 
     def __init__(self, level=None, rising=None):
         self.level = level

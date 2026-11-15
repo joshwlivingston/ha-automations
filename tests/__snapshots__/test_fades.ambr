@@ -4,27 +4,27 @@
   > sun(-12)
     DEBUG skip: not armed
   > start()
-    INFO  arm: short of from_level; sun=-12.0° to_level=0° off_level=4°
-    INFO  set: ramp 0%; light.x 5% sun=-12.0° transition=5s
+    INFO  arm: short of from_level; sun=-12.0deg to_level=0deg off_level=4deg
+    INFO  set: ramp 0%; light.x 5% sun=-12.0deg transition=5s
   > sun(-8)
-    INFO  set: ramp 33%; light.x 14% sun=-8.0° transition=60s
+    INFO  set: ramp 33%; light.x 14% sun=-8.0deg transition=60s
   > sun(-4)
-    INFO  set: ramp 67%; light.x 29% sun=-4.0° transition=60s
+    INFO  set: ramp 67%; light.x 29% sun=-4.0deg transition=60s
   > manual(80)
   > sun(-3.9)
-    INFO  keep: above target; light.x 80% target=30% sun=-3.9°
+    INFO  keep: above target; light.x 80% target=30% sun=-3.9deg
   > sun(-2)
-    DEBUG skip: at or above target; light.x 80% target=39% sun=-2.0°
+    DEBUG skip: at or above target; light.x 80% target=39% sun=-2.0deg
   > sun(0)
-    DEBUG skip: at or above target; light.x 80% target=50% sun=0.0°
+    DEBUG skip: at or above target; light.x 80% target=50% sun=0.0deg
   > sun(0.5)
-    DEBUG skip: at or above target; light.x 80% target=50% sun=0.5°
+    DEBUG skip: at or above target; light.x 80% target=50% sun=0.5deg
   > sun(1.5)
-    INFO  ramp done: past to_level; sun=1.5° to_level=0°
+    INFO  ramp done: past to_level; sun=1.5deg to_level=0deg
   > sun(2)
-    DEBUG skip: past to_level; sun=2.0° to_level=0°
+    DEBUG skip: past to_level; sun=2.0deg to_level=0deg
   > sun(4.2)
-    INFO  off: reached off_level; light.x sun=4.2° off_level=4° transition=300s
+    INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
     INFO  disarm: reached off_level; until next start trigger
   > sun(6)
     DEBUG skip: not armed
@@ -34,10 +34,10 @@
   '''
   # sun at -2, rising=True
   > start()
-    INFO  skip arm: past from_level; sun=-2.0° from_level=-6°
+    INFO  skip arm: past from_level; sun=-2.0deg from_level=-6deg
   # sun at -10, rising=False
   > start()
-    INFO  skip arm: sun falling; sun=-10.0°
+    INFO  skip arm: sun falling; sun=-10.0deg
   # sun at None, rising=None
   > start()
     INFO  skip arm: no sun reading
@@ -46,18 +46,18 @@
 # name: test_sunset_evening_log
   '''
   > start()
-    INFO  skip: sun rising; sun=12.0°
+    INFO  skip: sun rising; sun=12.0deg
   > sun(12, rising=False)
-    DEBUG skip: short of ramp_from; sun=12.0° ramp_from=6°
+    DEBUG skip: short of ramp_from; sun=12.0deg ramp_from=6deg
   > sun(6)
-    INFO  set: ramp 0%; light.x 5% sun=6.0° transition=60s
+    INFO  set: ramp 0%; light.x 5% sun=6.0deg transition=60s
   > sun(0)
-    INFO  set: ramp 50%; light.x 21% sun=0.0° transition=60s
+    INFO  set: ramp 50%; light.x 21% sun=0.0deg transition=60s
   > sun(-6)
-    INFO  set: ramp 100%; light.x 50% sun=-6.0° transition=60s
+    INFO  set: ramp 100%; light.x 50% sun=-6.0deg transition=60s
   > sun(-6.5)
-    DEBUG skip: at or above target; light.x 50% target=50% sun=-6.5°
+    DEBUG skip: at or above target; light.x 50% target=50% sun=-6.5deg
   > sun(-8)
-    INFO  ramp done: past to_level; sun=-8.0° to_level=-6°
+    INFO  ramp done: past to_level; sun=-8.0deg to_level=-6deg
   '''
 # ---
