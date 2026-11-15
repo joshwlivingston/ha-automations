@@ -1,6 +1,6 @@
 [project]
 name = "ha-automations"
-version = "0.1.0.9008"
+version = "0.1.0.9009"
 description = "Home automations running on AppDaemon"
 license = "MIT"
 requires-python = ">=3.12"
@@ -14,6 +14,7 @@ dev = [
     "pyright>=1.1.414",
     "syrupy>=7.0.1",
     "ha-automations-release",
+    "ha-automations-docs",
 ]
 docs = [
     "great-docs>=0.17.0",
@@ -22,6 +23,7 @@ docs = [
 
 [tool.uv.sources]
 ha-automations-release = { path = "tools/release", editable = true }
+ha-automations-docs = { path = "tools/docs", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -34,7 +36,7 @@ packages = ["src/ha_automations"]
 testpaths = ["tests"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ha_automations", "ha_automations_release"]
+known-first-party = ["ha_automations", "ha_automations_release", "ha_automations_docs"]
 
 [tool.pyright]
 typeCheckingMode = "standard"

@@ -7,3 +7,4 @@ dist/
 deploy/appdaemon/apps/apps.yaml
 great-docs/
 _freeze/
+.docs-archive/

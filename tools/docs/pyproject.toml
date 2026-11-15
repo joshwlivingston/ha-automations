@@ -1,0 +1,16 @@
+[project]
+name = "ha-automations-docs"
+version = "0.1.0"
+description = "Docs command for ha-automations, used in development only"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+docs = "ha_automations_docs:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ha_automations_docs"]

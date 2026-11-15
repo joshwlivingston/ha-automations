@@ -70,11 +70,25 @@ The deploy workflow runs in `CONFIG_REPO` (environment or `.deploy.env`), defaul
 ## Docs
 
 ```sh
-uv sync --group docs
-uv run great-docs preview
+uv run docs preview   # serve the site at http://127.0.0.1:8000/, building it first if needed
+uv run docs build     # build the site into great-docs/_site
 ```
 
-Needs [Quarto](https://quarto.org). The site deploys to GitHub Pages on each push to `main`. Pages are for users: no internals. Settings tables, defaults and charts come from the code through `docs/_helpers.py`.
+Needs [Quarto](https://quarto.org). Pages are for users: no internals. Settings tables, defaults and charts come from the code through `docs/_helpers.py`.
+
+The site has a version selector:
+
+| Version | Built from | Path |
+|---|---|---|
+| `dev` | the working tree, uncommitted and untracked files included (`--ref` for a ref) | `v/dev/` |
+| dev tags (`vX.Y.Z.9NNN`) | the tag | `v/X.Y.Z.9NNN/` |
+| releases (`vX.Y.Z`) | the tag | `v/X.Y.Z/`, and the newest at the root |
+
+- Each tag builds once and is reused after that: locally from `.docs-archive/`, in CI from `docs-site.tar.gz` on its GitHub release (releases) or the Actions cache (dev tags). `--rebuild` builds every tag again; in CI, delete a release's `docs-site.tar.gz` to rebuild it.
+- Only tags that also exist on `origin` build. Docs for deleted tags are dropped.
+- Versions that need building build in parallel (`--jobs`). A terminal shows one live status line per build; each build's full log prints as one block when it finishes (a collapsible group in GitHub Actions).
+- `preview` skips the build when the site matches the working tree, the tags and the docs tool; `--build` builds anyway.
+- Each push to `main` runs `uv run docs build --ref HEAD --release-assets` and deploys to GitHub Pages. If a new release is not published yet, the next run attaches its docs.
 
 ## Commits
 

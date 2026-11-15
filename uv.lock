@@ -1113,7 +1113,7 @@ wheels = [
 
 [[package]]
 name = "ha-automations"
-version = "0.1.0.9008"
+version = "0.1.0.9009"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
@@ -1122,6 +1122,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "appdaemon" },
+    { name = "ha-automations-docs" },
     { name = "ha-automations-release" },
     { name = "pyright" },
     { name = "pytest" },
@@ -1139,6 +1140,7 @@ requires-dist = [{ name = "pydantic", specifier = ">=2" }]
 [package.metadata.requires-dev]
 dev = [
     { name = "appdaemon", specifier = ">=4.5.16" },
+    { name = "ha-automations-docs", editable = "tools/docs" },
     { name = "ha-automations-release", editable = "tools/release" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=9.2.0" },
@@ -1149,6 +1151,11 @@ docs = [
     { name = "great-docs", specifier = ">=0.17.0" },
     { name = "matplotlib", specifier = ">=3.11.2" },
 ]
+
+[[package]]
+name = "ha-automations-docs"
+version = "0.1.0"
+source = { editable = "tools/docs" }
 
 [[package]]
 name = "ha-automations-release"
