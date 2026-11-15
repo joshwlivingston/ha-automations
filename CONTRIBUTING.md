@@ -76,7 +76,7 @@ uv run docs build     # build the site into great-docs/_site
 
 Needs [Quarto](https://quarto.org). Pages are for users: no internals. Settings tables, defaults and charts come from the code through `docs/_helpers.py`.
 
-The site has a version selector. The newest release is the root, each release is under `v/X.Y.Z/`, and the current commit is under `v/dev/`. Each version builds from its own checkout, so only committed changes show. A build builds `dev` and any release tag (`vX.Y.Z`) whose docs are not in the archive, in parallel, and drops archived docs for deleted tags. Locally the archive is `.docs-archive/`. In CI it is the `docs-archive` branch: each push to `main` builds and deploys to GitHub Pages and pushes newly built releases to that branch. To rebuild a release, delete its directory from the archive. For a quick single-version preview of uncommitted changes, use `uv run great-docs preview`.
+The site has a version selector. The newest release is the root, each release is under `v/X.Y.Z/`, and the current commit is under `v/dev/`. Each version builds from its own checkout, so only committed changes show. A build builds `dev` and any release tag (`vX.Y.Z`) whose docs are not in the archive, in parallel, with each output line prefixed by its version. Only tags that also exist on `origin` build, and archived docs for deleted tags are dropped. `--rebuild` builds every release again. Locally the archive is `.docs-archive/`. In CI it is the `docs-archive` branch: each push to `main` builds and deploys to GitHub Pages and pushes newly built releases to that branch. To rebuild a release, delete its directory from the archive. For a quick single-version preview of uncommitted changes, use `uv run great-docs preview`.
 
 ## Commits
 

@@ -5,10 +5,11 @@ Usage:
     uv run docs preview   build the site and serve it locally
 
 Each release tag (vX.Y.Z) builds once from its own checkout and is kept in the archive directory
-as ARCHIVE/X.Y.Z/. A build builds the dev ref and any release whose archived docs are missing, and
-drops archived docs for tags that no longer exist. Builds run in parallel. The site puts the
-newest release at the root, every release under v/X.Y.Z/ and the dev ref under v/dev/. The
-version list baked into each page is rewritten so every page lists every version.
+as ARCHIVE/X.Y.Z/. A build builds the dev ref and any release whose archived docs are missing
+(all of them with --rebuild), and drops archived docs for tags that no longer exist. Builds run
+in parallel, with each line of their output prefixed by the version. The site puts the newest
+release at the root, every release under v/X.Y.Z/ and the dev ref under v/dev/. The version list
+baked into each page is rewritten so every page lists every version.
 """
 
 import argparse
@@ -35,6 +36,7 @@ ARCHIVE = ".docs-archive"
 OUT = "great-docs/_site"
 # Worktree add and remove edit shared files in .git, so they run one at a time.
 GIT_LOCK = threading.Lock()
+PRINT_LOCK = threading.Lock()
 # Build output that only applies to a full Great Docs versioned site.
 DROP = ["v", "_redirects", "vercel.json", "_version_map.json"]
 
@@ -55,6 +57,28 @@ def releases(tags: list[str]) -> list[str]:
     found = [m for t in tags if (m := RELEASE_TAG.fullmatch(t))]
     found.sort(key=lambda m: tuple(int(g) for g in m.groups()), reverse=True)
     return [m.group(0)[1:] for m in found]
+
+
+def existing_tags() -> list[str]:
+    """Returns local tags that also exist on origin, so tags deleted on origin are not built.
+
+    Without origin (offline, no remote) it warns and returns all local tags.
+    """
+    local = git("tag", "--list", "v*").split()
+    try:
+        lines = git("ls-remote", "--tags", "--refs", "origin", "v*").splitlines()
+    except subprocess.CalledProcessError:
+        print("Warning: could not list tags on origin, using local tags")
+        return local
+    remote = {line.split("refs/tags/", 1)[1] for line in lines if "refs/tags/" in line}
+    for tag in releases(local):
+        if f"v{tag}" not in remote:
+            print(
+                f"Skipping v{tag}: deleted on origin (git fetch --prune --prune-tags)"
+            )
+    for tag in releases(sorted(remote - set(local))):
+        print(f"Skipping v{tag}: on origin but not here (git fetch --tags)")
+    return [t for t in local if t in remote]
 
 
 def version_map(versions: list[str]) -> dict[str, object]:
@@ -79,31 +103,51 @@ def set_version_map(page: str, data: dict[str, object]) -> str:
     return VERSION_META.sub(lambda _: meta, page)
 
 
+def say(tag: str, line: str) -> None:
+    """Prints a line prefixed with the version it is about."""
+    with PRINT_LOCK:
+        print(f"[{tag}] {line}")
+
+
+def run(tag: str, cmd: list[str], cwd: Path, env: dict[str, str]) -> None:
+    """Runs cmd, passing its output through prefixed with tag."""
+    say(tag, "$ " + " ".join(cmd))
+    with subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    ) as proc:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            say(tag, line.rstrip())
+    if proc.returncode:
+        raise DocsError(f"{tag}: {cmd[0]} exited with {proc.returncode}")
+
+
 def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
-    """Builds the docs at ref as version tag into dest. Output goes to a log shown on failure."""
+    """Builds the docs at ref as version tag into dest."""
     start = time.monotonic()
     # Listing every version makes Great Docs add the selector; tag is latest so it builds at the root.
     versions = [{"tag": t, "label": t, "latest": t == tag} for t in tags]
     env = {k: v for k, v in os.environ.items() if k != "VIRTUAL_ENV"}
     with tempfile.TemporaryDirectory() as tmp:
         tree = Path(tmp) / "tree"
-        log = Path(tmp) / "build.log"
+        say(tag, f"Checking out {ref} in {tree}")
         with GIT_LOCK:
             git("worktree", "add", "--quiet", "--detach", str(tree), ref)
         try:
             with open(tree / "great-docs.yml", "a") as f:
                 f.write(f"\nversions: {json.dumps(versions)}\n")
-            with open(log, "w") as out:
-                for cmd in (
-                    ["uv", "sync", "--quiet", "--locked", "--group", "docs"],
-                    ["uv", "run", "--no-sync", "great-docs", "build", "--latest-only"],
-                ):
-                    result = subprocess.run(
-                        cmd, check=False, cwd=tree, env=env, stdout=out, stderr=out
-                    )
-                    if result.returncode:
-                        print(log.read_text())
-                        raise DocsError(f"build of {tag} from {ref} failed")
+            run(tag, ["uv", "sync", "--locked", "--group", "docs"], tree, env)
+            run(
+                tag,
+                ["uv", "run", "--no-sync", "great-docs", "build", "--latest-only"],
+                tree,
+                env,
+            )
             site = tree / "great-docs" / "_site"
             for name in DROP:
                 path = site / name
@@ -111,6 +155,7 @@ def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
                     shutil.rmtree(path)
                 elif path.exists():
                     path.unlink()
+            say(tag, f"Copying the site to {dest}")
             # Copy then rename, so a failed copy never leaves a partial dest.
             partial = dest.with_name(dest.name + ".partial")
             for path in (partial, dest):
@@ -121,15 +166,16 @@ def build_version(ref: str, tag: str, tags: list[str], dest: Path) -> None:
         finally:
             with GIT_LOCK:
                 git("worktree", "remove", "--force", str(tree))
-    print(f"Built {tag} from {ref} in {time.monotonic() - start:.0f}s")
+    say(tag, f"Built from {ref} in {time.monotonic() - start:.0f}s")
 
 
 def build(args: argparse.Namespace) -> Path:
     """Builds the site and returns its directory."""
     archive: Path = args.archive.resolve()
     out: Path = args.out.resolve()
-    versions = releases(git("tag", "--list", "v*").split())
+    versions = releases(existing_tags())
     tags = [DEV, *versions]
+    print(f"Versions: {', '.join(tags)}")
 
     archive.mkdir(parents=True, exist_ok=True)
     # Drop archived docs for tags that no longer exist and leftovers from failed copies.
@@ -139,38 +185,42 @@ def build(args: argparse.Namespace) -> Path:
             and not path.name.startswith(".")
             and path.name not in versions
         ):
+            print(f"Removing {path}: no tag v{path.name}")
             shutil.rmtree(path)
     if out.exists():
         shutil.rmtree(out)
 
     builds = [(args.ref, DEV, out / "v" / DEV)]
-    # Rebuild any release whose archived docs are missing or incomplete.
-    builds += [
-        (f"v{v}", v, archive / v)
-        for v in versions
-        if not (archive / v / "index.html").is_file()
-    ]
-    print("Building " + ", ".join(tag for _, tag, _ in builds))
-    with ThreadPoolExecutor(max_workers=min(args.jobs, len(builds))) as pool:
+    for v in versions:
+        if args.rebuild or not (archive / v / "index.html").is_file():
+            builds.append((f"v{v}", v, archive / v))
+        else:
+            print(f"Using {archive / v} for {v} (--rebuild to build it again)")
+    jobs = min(args.jobs, len(builds))
+    print(f"Building {', '.join(tag for _, tag, _ in builds)} ({jobs} at a time)")
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
         for job in [
             pool.submit(build_version, ref, tag, tags, dest)
             for ref, tag, dest in builds
         ]:
             job.result()
 
+    latest = versions[0] if versions else DEV
+    print(f"Assembling the site in {out}, with {latest} at the root")
     for version in versions:
         shutil.copytree(archive / version, out / "v" / version)
-    shutil.copytree(
-        out / "v" / (versions[0] if versions else DEV), out, dirs_exist_ok=True
-    )
+    shutil.copytree(out / "v" / latest, out, dirs_exist_ok=True)
 
     data = version_map(versions)
+    pages = 0
     for page in out.rglob("*.html"):
         text = page.read_text(encoding="utf-8")
         new = set_version_map(text, data)
         if new != text:
             page.write_text(new, encoding="utf-8")
+            pages += 1
     (out / "_version_map.json").write_text(json.dumps(data, indent=2) + "\n")
+    print(f"Set the version list on {pages} pages")
     print(f"Site ready in {out}")
     return out
 
@@ -203,6 +253,9 @@ def parser() -> argparse.ArgumentParser:
         )
         cmd.add_argument(
             "--jobs", type=int, default=os.cpu_count() or 1, help="parallel builds"
+        )
+        cmd.add_argument(
+            "--rebuild", action="store_true", help="build archived releases again"
         )
         cmd.add_argument(
             "--archive", type=Path, default=Path(ARCHIVE), help="release docs cache"

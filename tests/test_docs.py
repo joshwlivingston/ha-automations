@@ -1,7 +1,11 @@
 import html
 import json
+import subprocess
 
-from ha_automations_docs import releases, set_version_map, version_map
+import pytest
+
+import ha_automations_docs
+from ha_automations_docs import existing_tags, releases, set_version_map, version_map
 
 
 def test_releases_newest_first_without_dev_tags():
@@ -25,3 +29,25 @@ def test_set_version_map_replaces_meta_content():
     content = new.split('content="')[1].split('"')[0]
     assert json.loads(html.unescape(content)) == data
     assert new.startswith("<head>") and new.endswith("</head>")
+
+
+def fake_git(local: list[str], remote: list[str] | None):
+    def git(*args: str) -> str:
+        if args[0] == "tag":
+            return "\n".join(local)
+        if remote is None:
+            raise subprocess.CalledProcessError(128, "git")
+        return "\n".join(f"abc123\trefs/tags/{t}" for t in remote)
+
+    return git
+
+
+def test_existing_tags_skips_tags_deleted_on_origin(monkeypatch: pytest.MonkeyPatch):
+    git = fake_git(["v0.1.0", "v0.2.0", "v0.2.0.9001"], ["v0.1.0", "v0.3.0"])
+    monkeypatch.setattr(ha_automations_docs, "git", git)
+    assert existing_tags() == ["v0.1.0"]
+
+
+def test_existing_tags_uses_local_tags_without_origin(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(ha_automations_docs, "git", fake_git(["v0.1.0"], None))
+    assert existing_tags() == ["v0.1.0"]
