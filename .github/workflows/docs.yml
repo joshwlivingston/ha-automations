@@ -2,7 +2,13 @@ name: Docs
 on:
   push:
     branches: [main]
-  # A deleted tag drops its version, e.g. the old dev tags release prod deletes.
+  # A new tag adds its version once CI on it passes; for a release, CI has attached its docs by then.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: ["v*"]
+  # A deleted tag drops its version. GitHub sends no event when more than three tags are deleted
+  # at once, so uv run release starts this workflow itself after deleting dev tags.
   delete:
   workflow_dispatch:
 
@@ -12,13 +18,19 @@ permissions:
   id-token: write
 
 concurrency:
-  # Branch deletes skip the build, so they get a group of their own and never cancel a real run.
-  group: ${{ github.event_name == 'delete' && github.event.ref_type != 'tag' && format('skip-{0}', github.run_id) || 'pages' }}
+  # Runs that skip the build (branch deletes, failed CI) get a group of their own, so they never
+  # cancel a real run. Keep this in step with the build job's if.
+  group: >-
+    ${{ ((github.event_name == 'delete' && github.event.ref_type != 'tag')
+    || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'))
+    && format('skip-{0}', github.run_id) || 'pages' }}
   cancel-in-progress: true
 
 jobs:
   build:
-    if: github.event_name != 'delete' || github.event.ref_type == 'tag'
+    if: >-
+      (github.event_name != 'delete' || github.event.ref_type == 'tag')
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
