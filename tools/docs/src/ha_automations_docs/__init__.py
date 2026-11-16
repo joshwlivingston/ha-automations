@@ -298,6 +298,9 @@ def build_checkout(
     """Builds the docs in a checkout of ref with the versions list, and copies the site to dest."""
     with tempfile.TemporaryDirectory() as tmp:
         tree = Path(tmp) / "tree"
+        # Quarto's caches are SQLite stores that fail when parallel builds write them, so each
+        # build gets its own; uv keeps the shared cache. Quarto reads XDG_CACHE_HOME on Linux only.
+        env = env | {"UV_CACHE_DIR": uv_cache_dir(), "XDG_CACHE_HOME": f"{tmp}/cache"}
         say(tag, f"Checking out {ref} in {tree}")
         with GIT_LOCK:
             git("worktree", "add", "--quiet", "--detach", str(tree), ref)
@@ -325,6 +328,14 @@ def build_checkout(
         finally:
             with GIT_LOCK:
                 git("worktree", "remove", "--force", str(tree))
+
+
+@functools.cache
+def uv_cache_dir() -> str:
+    """Returns the uv cache directory."""
+    return subprocess.run(
+        ["uv", "cache", "dir"], check=True, capture_output=True, text=True
+    ).stdout.strip()
 
 
 def replace_dir(src: Path, dest: Path) -> None:
