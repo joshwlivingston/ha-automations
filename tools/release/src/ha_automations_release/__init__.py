@@ -33,6 +33,7 @@ CHANGELOG = "CHANGELOG.md"
 VERSION_FILES = ["CHANGELOG.md", "pyproject.toml", "uv.lock"]
 DEPLOY_WORKFLOW = "deploy.yml"
 CI_WORKFLOW = "ci.yml"
+DOCS_WORKFLOW = "docs.yml"
 POLL_SECONDS = 5
 POLL_TRIES = 24
 RELEASE_COMMIT = re.compile(r"^chore: release v(?P<version>\d+\.\d+\.\d+)(?: \(#\d+\))?$")
@@ -295,6 +296,15 @@ def merge_release_pr(tag: str, origin: str) -> str:
     return sha
 
 
+def rebuild_docs(origin: str) -> None:
+    """Starts the docs workflow on main, so the docs drop deleted tags.
+
+    GitHub sends no delete event when more than three tags are deleted at once.
+    """
+    run("gh", "workflow", "run", DOCS_WORKFLOW, "-R", origin, "--ref", "main")
+    print(f"Started {DOCS_WORKFLOW} on {origin} to update the docs versions")
+
+
 def release(kind: str, args: argparse.Namespace) -> None:
     """Runs a dev or prod release."""
     preflight(args.dry_run)
@@ -373,6 +383,7 @@ def release(kind: str, args: argparse.Namespace) -> None:
 
     if stale:
         delete_tags(stale)
+        rebuild_docs(origin)
     print(f"Released {tag}")
 
 
@@ -391,6 +402,7 @@ def prune(args: argparse.Namespace) -> None:
     if args.dry_run or not confirm("Delete them?", args.yes):
         return
     delete_tags(stale)
+    rebuild_docs(origin_repo())
 
 
 def parser() -> argparse.ArgumentParser:

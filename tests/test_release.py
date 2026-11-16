@@ -8,6 +8,7 @@ from ha_automations_release import (
     merge_release_pr,
     prior_dev_tags,
     prod_version,
+    rebuild_docs,
     release_changelog,
     repo_from_url,
     unfinished_release,
@@ -209,3 +210,9 @@ def test_unfinished_release_none_when_the_newest_release_is_tagged(monkeypatch):
 def test_unfinished_release_accepts_a_pull_request_number(monkeypatch):
     fake_release_commands(monkeypatch, log="aaa chore: release v0.3.0 (#20)\n")
     assert unfinished_release({"v0.2.0"}) == ("0.3.0", "aaa")
+
+
+def test_rebuild_docs_starts_the_docs_workflow_on_main(monkeypatch):
+    calls = fake_release_commands(monkeypatch)
+    rebuild_docs("you/ha-automations")
+    assert calls == ["gh workflow run docs.yml -R you/ha-automations --ref main"]

@@ -4,6 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
+- The docs update after each release and dev release, and drop deleted dev tags.
 - `uv run release prod` no longer fails when GitHub deletes the release branch on merge, and finishes a release that was merged but not tagged.
 
 ## [0.2.0] - 2026-11-15
