@@ -11,6 +11,7 @@ Automations for Home Assistant, configured in one file. Runs on the AppDaemon ad
 - [Sunrise Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunrise-fade.html): turns a light on dim before dawn and brightens it as the sun rises.
 - [Sunset Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/sunset-fade.html): brightens a light as the sun sets.
 - [Light Fade](https://joshwlivingston.github.io/ha-automations/docs/apps/light-fade.html): a fade with your own levels, start times and direction.
+- [Light Calibration](https://joshwlivingston.github.io/ha-automations/docs/apps/light-calibration.html): makes 1% the dimmest a bulb glows and 100% its full brightness, with an optional dashboard slider.
 
 ```yaml
 bedroom_sunrise:

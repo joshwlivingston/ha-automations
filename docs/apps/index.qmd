@@ -34,6 +34,7 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 | Wake up to light | [Sunrise Fade](sunrise-fade.qmd) |
 | Light a room before dark | [Sunset Fade](sunset-fade.qmd) |
 | Other levels, times or direction | [Light Fade](light-fade.qmd) |
+| 1% too dark or 100% no brighter than 80% | [Light Calibration](light-calibration.qmd) |
 
 ### Using light apps
 
