@@ -4,6 +4,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
+- Light Calibration app: maps a light's 1 to 100% onto the raw brightness range its bulb actually uses, e.g. `calibration: {kind: linear, low: 27, high: 205}`. Every light app that controls that light uses it. With `slider` set, an input_number helper controls the light through the calibration and follows it when anything else changes the light.
 - The docs update after each release and dev release, and drop deleted dev tags.
 - `uv run release prod` no longer fails when GitHub deletes the release branch on merge, and finishes a release that was merged but not tagged.
 
