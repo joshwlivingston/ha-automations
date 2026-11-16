@@ -24,7 +24,7 @@ sections:
     dir: docs/apps
     sidebar_groups:
       - section: Lights
-        contents: [sunrise-fade.qmd, sunset-fade.qmd, light-fade.qmd, light-calibration.qmd]
+        contents: [sunrise-fade.qmd, sunset-fade.qmd, light-fade.qmd]
       - section: Using light apps
         contents: [sun-levels.qmd, start-triggers.qmd, manual-control.qmd, light-log.qmd, light-troubleshooting.qmd]
 
@@ -55,18 +55,6 @@ reference:
       - apps.sunrise_fade.SunriseSettings
       - apps.sunset_fade.SunsetFade
       - apps.sunset_fade.SunsetSettings
-      - apps.light_calibration.LightCalibrationApp
-      - apps.light_calibration.LightCalibrationSettings
-
-  - title: Calibrations
-    desc: Map percent brightness to a light's raw brightness.
-    contents:
-      - calibrations.Calibration
-      - calibrations.FullRange
-      - calibrations.Linear
-      - calibrations.calibration_for
-      - calibrations.register
-      - calibrations.unregister
 
   - title: Fades
     desc: Fade logic and constants.
