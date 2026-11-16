@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from ha_automations.curves import ease_in, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
-from ha_automations.logs import line
 
 MIN_BRIGHTNESS = 5        # lowest level the bulb visibly glows at
 MAX_BRIGHTNESS = 50
@@ -33,6 +32,11 @@ def brighten_only(light: Light, pct: int, transition: float = RAMP_TRANSITION) -
 
 def _quiet(msg: str) -> None:
     pass
+
+
+def line(action: str, reason: str, detail: str = "") -> str:
+    """One log line: action, reason and optional detail."""
+    return f"{action}: {reason}; {detail}" if detail else f"{action}: {reason}"
 
 
 @dataclass

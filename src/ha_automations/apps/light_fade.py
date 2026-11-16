@@ -31,9 +31,10 @@ This runs the same check as a start trigger.
 from typing import ClassVar
 
 import appdaemon.plugins.hass.hassapi as hass
+from appdaemon.models.config.app import AppConfig
 from pydantic import Field
 
-from ha_automations.config import APPDAEMON_KEYS, Config
+from ha_automations.config import Config
 from ha_automations.detectors import DetectorConfig
 from ha_automations.fades import (
     MAX_BRIGHTNESS,
@@ -45,6 +46,8 @@ from ha_automations.fades import (
 from ha_automations.lights import HassLight
 from ha_automations.triggers import Daily, Event, Trigger, TriggerConfig
 
+# Keys AppDaemon itself puts in app args.
+APPDAEMON_KEYS = frozenset(f.alias or name for name, f in AppConfig.model_fields.items())
 EVENT_SUFFIX = "_start"
 
 
