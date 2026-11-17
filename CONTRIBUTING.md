@@ -8,6 +8,19 @@ uv run pytest && uv run ruff check . && uv run pyright
 
 CI runs these on every push and pull request.
 
+## Scope
+
+ha-automations decides what to do to entities and when. Home Assistant config defines the entities and how devices report and accept values.
+
+| ha-automations | Home Assistant config |
+|---|---|
+| Logic that changes over time (fades, ramps, curves) | Entities (template lights, helpers, groups) |
+| Decisions that depend on state (sun position, light levels, start triggers) | Fixes to how a device reports or accepts values (calibration, scaling, inverting) |
+| Logic that needs tests, logs and docs | Integrations, devices, areas, dashboards |
+| Reusable apps, configured per instance in `apps.yaml` | One-off glue a YAML automation handles |
+
+A stateless conversion between values goes in Home Assistant config. Logic with state, timing or decisions goes here.
+
 ## Layout
 
 | Path | Holds |
