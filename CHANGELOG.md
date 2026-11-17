@@ -4,9 +4,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
-- The docs update after each release and dev release, and drop deleted dev tags.
-- Docs builds no longer fail when several versions build at once.
-- `uv run release prod` no longer fails when GitHub deletes the release branch on merge, and finishes a release that was merged but not tagged.
+### Bugfixes
+
+- `uv run release prod` no longer fails when GitHub deletes the release branch on merge (#18).
+- Rerun `uv run release prod` to tag and deploy a release that was merged but never tagged (#18).
+
+### Documentation
+
+- The docs site rebuilds when a tag is pushed or deleted (#19).
+- Building several docs versions at once no longer fails (#21).
 
 ### Defaults
 
@@ -17,12 +23,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [0.2.0] - 2026-11-15
 
-- `scripts/deploy.sh` deploys dev tags (`vX.Y.Z.9xxx`) only with `DEV=1`, so you can test a build on the box before releasing it. Tags that are neither `vX.Y.Z` nor `vX.Y.Z.9xxx` are refused.
-- Sun levels in logs use `deg` instead of the degree sign, which showed as garbled characters in the AppDaemon log (e.g. `from_level=-6deg`).
-- `uv run release dev` and `uv run release prod` tag a release, wait for CI, and deploy it from your config repo.
-- `off_time` turns a light app's light off at a time of day, e.g. `off_time: "23:00:00"`. Sunset Fade turns its light off at 11 pm by default; set `off_time: null` to leave it on.
-- The docs show the latest release by default and have a version selector with every release and dev tag. Docs for unreleased changes are under `dev`.
-- `uv run release prod` merges the release commit into `main` through a pull request, so it works when `main` only accepts pull requests.
+### Breaking changes
+
+- Sunset Fade turns its light off at 23:00 by default. Set `off_time: null` to keep it on (#12).
+- Log lines read `action: reason; key=value ...`, e.g. `load: init; light=light.bedroom_lamp` (#2, #6).
+- `scripts/deploy.sh` refuses tags other than `vX.Y.Z` and `vX.Y.Z.9xxx` (#3).
+
+### New features
+
+- `off_time` turns a light app's light off at a set time, e.g. `"23:00:00"` (#12).
+- `uv run release` tags a version and deploys it from your config repo once CI passes; `prod` merges into `main` by pull request (#8, #9, #16).
+- `DEV=1 scripts/deploy.sh vX.Y.Z.9xxx` deploys a dev tag for testing before release (#3).
+- GitHub releases take their notes from `CHANGELOG.md` (#4).
+
+### Bugfixes
+
+- Logs write sun levels as `-6deg`; the degree sign showed garbled in AppDaemon (#7).
+
+### Documentation
+
+- The docs are rewritten for users, in three parts: User Guide, Apps, Reference (#11).
+- The docs site opens on the latest release, with a version selector for every release and dev tag; `dev` holds unreleased changes (#13).
+- Each GitHub release has its docs attached (#14).
 
 ## [0.1.0] - 2026-11-14
 
