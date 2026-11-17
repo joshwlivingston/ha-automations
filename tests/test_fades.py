@@ -162,6 +162,60 @@ def test_stop_when_off_does_nothing():
     assert fade.ramp_from == fade.from_level
 
 
+class FakeStore:
+    def __init__(self, value=None):
+        self.value = value
+
+    def load(self):
+        return self.value
+
+    def save(self, value):
+        self.value = value
+
+
+def test_store_follows_arming():
+    det, light, store = FakeDetector(-10, True), FakeLight(), FakeStore()
+    fade = rising(det, light)
+    fade.store = store
+    fade.start()
+    assert store.value == -10
+    det.level = 4
+    fade.update()
+    assert store.value is None
+
+
+def test_restore_resumes_ramp():
+    det, light = FakeDetector(-3, True), FakeLight()
+    fade = rising(det, light)
+    fade.store = FakeStore(-10)
+    assert fade.restore()
+    assert fade.ramp_from == -10
+    assert LO < light.pct < HI
+
+
+def test_restore_past_off_level_turns_off():
+    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(-10)
+    fade = rising(det, light)
+    fade.store = store
+    fade.restore()
+    assert light.calls == [("off", fade.off_transition)]
+    assert store.value is None
+
+
+def test_restore_without_saved_level_stays_disarmed():
+    light = FakeLight()
+    fade = rising(FakeDetector(-3, True), light)
+    fade.store = FakeStore()
+    assert not fade.restore()
+    assert light.calls == []
+
+
+def test_restore_untriggered_updates():
+    light = FakeLight()
+    assert falling(FakeDetector(0, False), light).restore()
+    assert light.pct > LO
+
+
 def test_brighten_only_reports_change():
     assert brighten_only(FakeLight(20), 30)
     assert not brighten_only(FakeLight(50), 30)
@@ -241,6 +295,14 @@ def test_sunset_evening_log(snapshot):
     s.sun(12, rising=False)
     for level in (6, 0, -6, -6.5, -8):
         s.sun(level)
+    assert str(s) == snapshot
+
+
+def test_restore_log(snapshot):
+    s = Script(-3, True, store=FakeStore(-10), **SUNRISE)
+    s.lines.append("> restore()")
+    s.fade.restore()
+    s.sun(4.2)
     assert str(s) == snapshot
 
 

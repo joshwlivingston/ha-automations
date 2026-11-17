@@ -18,6 +18,16 @@
     DEBUG skip: not armed
   '''
 # ---
+# name: test_restore_log
+  '''
+  > restore()
+    INFO  arm: armed before restart; ramp_from=-10deg
+    INFO  set: ramp 70%; light.x 31% sun=-3.0deg transition=60s
+  > sun(4.2)
+    INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
+    INFO  disarm: reached off_level; until next start trigger
+  '''
+# ---
 # name: test_sunrise_morning_log
   '''
   > sun(-12)

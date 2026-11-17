@@ -40,8 +40,10 @@ AppDaemon restarts on each deploy, and when Home Assistant restarts.
 
 | App | After a restart during a fade |
 |---|---|
-| No `start` triggers, like Sunset Fade | Carries on at the next sun update |
-| With `start` triggers, like Sunrise Fade | Stops until the next trigger. Fire the test event to resume. |
+| No `start` triggers, like Sunset Fade | Carries on |
+| With `start` triggers, like Sunrise Fade | Carries on, if the fade started in the last `{python} fades.RESTORE_MAX_AGE // 3600` hours |
+
+Apps with `start` triggers keep the fade's state in `ha_automations_state/` in the AppDaemon add-on's config folder.
 
 ## Turn an app off
 

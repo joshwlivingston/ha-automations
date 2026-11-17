@@ -1,16 +1,36 @@
+import json
+import tempfile
+import time
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from ha_automations.apps.light_fade import LightFadeApp
+from ha_automations.apps.light_fade import STATE_DIR, LightFadeApp
 from ha_automations.apps.sunrise_fade import SunriseFade
 from ha_automations.apps.sunset_fade import SunsetFade
 
 
-def build(cls, args, app_name="test"):
-    """Run `cls.initialize` against stubbed AppDaemon calls, skipping Hass.__init__."""
+def build(cls, args, app_name="test", config_dir=None, states=None):
+    """Run `cls.initialize` against stubbed AppDaemon calls, skipping Hass.__init__.
+
+    `states` maps entity IDs to get_state(attribute="all") results.
+    """
+    states = states or {}
+    root = Path(config_dir or tempfile.mkdtemp())
 
     class Stub(cls):
         name = app_name  # pyright: ignore[reportAssignmentType]
+        config_dir = root  # pyright: ignore[reportAssignmentType]
+
+        def get_state(self, entity_id, attribute=None):
+            entity = states.get(entity_id)
+            if attribute == "all" or entity is None:
+                return entity
+            return entity["attributes"].get(attribute) if attribute else entity["state"]
+
+        def call_service(self, service, **kwargs):
+            self.services.append((service, kwargs))
 
         def log(self, msg, level="INFO"):
             self.logs.append(msg)
@@ -26,7 +46,7 @@ def build(cls, args, app_name="test"):
 
     app = Stub.__new__(Stub)
     app.args = args
-    app.daily, app.events, app.logs = [], [], []
+    app.daily, app.events, app.logs, app.services = [], [], [], []
     app.initialize()
     return app
 
@@ -121,3 +141,30 @@ def test_summary_lines(snapshot):
         lines.append(f"> {cls.__name__} {name}: {args}")
         lines += [f"  {m}" for m in build(cls, args, app_name=name).logs]
     assert "\n".join(lines) == snapshot
+
+
+def sun(elevation, rising=True):
+    return {"sun.sun": {"state": "", "attributes": {"elevation": elevation, "rising": rising}}}
+
+
+def test_sunrise_restores_after_restart(tmp_path):
+    path = tmp_path / STATE_DIR / "bedroom_sunrise.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps({"value": -10, "saved_at": time.time()}))
+    app = build(SunriseFade, {"light": "light.x"}, "bedroom_sunrise", tmp_path, sun(-3))
+    assert app.fade.ramp_from == -10
+    assert app.services[0][0] == "light/turn_on"
+
+
+def test_sunrise_saves_when_armed(tmp_path):
+    app = build(SunriseFade, {"light": "light.x"}, "bedroom_sunrise", tmp_path, sun(-10))
+    app.fade.start()
+    path = tmp_path / STATE_DIR / "bedroom_sunrise.json"
+    assert json.loads(path.read_text())["value"] == -10
+    app.fade.stop("reached off_time")
+    assert not path.exists()
+
+
+def test_sunset_checks_on_load():
+    app = build(SunsetFade, {"light": "light.y"}, states=sun(0, rising=False))
+    assert app.services[0][0] == "light/turn_on"
