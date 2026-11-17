@@ -39,4 +39,7 @@ class SunriseSettings(LightFadeSettings):
 
 
 class SunriseFade(LightFadeApp):
+    """LightFadeApp with SunriseSettings."""
+
     Settings: ClassVar[type[LightFadeSettings]] = SunriseSettings
+    """Settings model the app reads from apps.yaml."""

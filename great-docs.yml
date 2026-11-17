@@ -10,6 +10,9 @@ jupyter: python3
 parser: numpy
 dynamic: false
 
+site:
+  css: docs/_styles.css
+
 accent_color:
   light: "#c66a10"
   dark: "#f0a04b"

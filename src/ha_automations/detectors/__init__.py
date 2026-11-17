@@ -10,5 +10,6 @@ from ha_automations.detectors.sun import Sun, SunDetector
 
 # Make this a union discriminated on `kind` when a second detector is added.
 DetectorConfig = Sun
+"""Settings for a detector. Only Sun for now."""
 
 __all__ = ["Detector", "DetectorConfig", "Reading", "Sun", "SunDetector"]

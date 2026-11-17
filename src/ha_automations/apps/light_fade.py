@@ -85,9 +85,13 @@ class LightFadeSettings(Config):
 
 
 class LightFadeApp(hass.Hass):
+    """AppDaemon app that runs a LightFade with settings from apps.yaml."""
+
     Settings: ClassVar[type[LightFadeSettings]] = LightFadeSettings
+    """Settings model the app reads from apps.yaml."""
 
     def initialize(self):
+        """Read the settings, start listening and restore a saved fade. AppDaemon calls this on load."""
         args = {k: v for k, v in self.args.items() if k not in APPDAEMON_KEYS}
         s = self.Settings.model_validate(args)
         self.fade = LightFade(

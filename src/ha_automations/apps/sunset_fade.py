@@ -36,4 +36,7 @@ class SunsetSettings(LightFadeSettings):
 
 
 class SunsetFade(LightFadeApp):
+    """LightFadeApp with SunsetSettings."""
+
     Settings: ClassVar[type[LightFadeSettings]] = SunsetSettings
+    """Settings model the app reads from apps.yaml."""

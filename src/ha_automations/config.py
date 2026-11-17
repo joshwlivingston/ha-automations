@@ -9,3 +9,4 @@ class Config(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True, use_attribute_docstrings=True)
+    """Forbid unknown keys, make instances read-only and use field docstrings as descriptions."""
