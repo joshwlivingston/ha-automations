@@ -11,6 +11,8 @@ from ha_automations.config import Config
 
 
 class Trigger(Protocol):
+    """Something that starts a fade."""
+
     def listen(self, app, callback: Callable[[], object]) -> None:
         """Call `callback` through `app` each time the trigger fires."""
         ...
@@ -20,11 +22,14 @@ class Daily(Config):
     """Fires once a day at `daily`, any time string `run_daily` accepts."""
 
     daily: str
+    """Time of day, e.g. `"05:45:00"` or `"sunrise - 00:30:00"`."""
 
     def __str__(self) -> str:
         return f"daily at {self.daily}"
 
     def listen(self, app, callback: Callable[[], object]) -> None:
+        """Call `callback` through `app` each day at `daily`."""
+
         def on_time(**kwargs):
             callback()
 
@@ -35,11 +40,14 @@ class Event(Config):
     """Fires when the Home Assistant event `event` is fired."""
 
     event: str
+    """Home Assistant event type."""
 
     def __str__(self) -> str:
         return f"event {self.event}"
 
     def listen(self, app, callback: Callable[[], object]) -> None:
+        """Call `callback` through `app` each time `event` fires."""
+
         def on_event(event_type, data, **kwargs):
             callback()
 
@@ -47,3 +55,4 @@ class Event(Config):
 
 
 TriggerConfig = Daily | Event
+"""Settings for a start trigger."""

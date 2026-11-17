@@ -1,0 +1,4 @@
+/* Great Docs tags every class attribute "constant". Tag them "attribute". */
+.content section.doc-attributes span.doc-label-constant::after {
+  content: "attribute";
+}

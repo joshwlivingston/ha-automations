@@ -2,6 +2,7 @@
 
 
 def clamp(x, lo=0.0, hi=1.0):
+    """`x` limited to between `lo` and `hi`."""
     return max(lo, min(hi, x))
 
 
@@ -16,4 +17,5 @@ def ease_in(p, k=1.5):
 
 
 def lerp(a, b, t):
+    """The value fraction `t` of the way from `a` to `b`."""
     return a + (b - a) * t

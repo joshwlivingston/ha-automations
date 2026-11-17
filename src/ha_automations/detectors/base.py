@@ -4,13 +4,17 @@ from typing import NamedTuple, Protocol
 
 
 class Reading(NamedTuple):
-    """A detector's level and direction. level is None if unavailable; rising is None if unknown."""
+    """A detector's level and direction."""
 
     level: float | None
+    """Level in the detector's units. None if unavailable."""
     rising: bool | None
+    """True if the level is rising. None if unknown."""
 
 
 class Detector(Protocol):
+    """Source of a light level for a fade."""
+
     label: str
     """What the detector measures, for logs, e.g. sun."""
     unit: str

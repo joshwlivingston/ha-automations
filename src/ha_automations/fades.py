@@ -12,11 +12,17 @@ from ha_automations.lights import Light
 from ha_automations.store import Store
 
 MIN_BRIGHTNESS = 0
+"""Default brightness when the light turns on, percent."""
 MAX_BRIGHTNESS = 100
-RAMP_TRANSITION = 60      # seconds, per brightness step
-ON_TRANSITION = 5         # seconds, first step after start() arms the fade
-OFF_TRANSITION = 300      # seconds, fade-out at off_level
-END_MARGIN = 1            # keep acting this far past to_level to catch a missed final update
+"""Default brightness at to_level, percent."""
+RAMP_TRANSITION = 60
+"""Seconds each brightness step takes."""
+ON_TRANSITION = 5
+"""Seconds the first step takes after start() arms the fade."""
+OFF_TRANSITION = 300
+"""Default seconds the light takes to fade off."""
+END_MARGIN = 1
+"""How far past to_level the fade keeps acting, to catch a missed final update."""
 RESTORE_MAX_AGE = 12 * 3600  # seconds; a fade armed longer ago is not restored, so it never resumes the next day
 
 
@@ -56,27 +62,38 @@ class LightFade:
     to_level. Triggered fades do nothing until start() finds the level short of
     from_level, then ramp from that level until off_level.
 
-    `log` gets one line per change to the light or arming; `debug` gets
-    updates that did nothing. A triggered fade saves its armed level and the
-    time from `now` in `store`, if set, and restore() re-arms it from there
-    after a restart.
+    A triggered fade saves its armed level in `store`, if set, and restore()
+    re-arms it from there after a restart.
     """
 
     detector: Detector
+    """Source of the level."""
     light: Light
+    """Light to set."""
     from_level: float
+    """Level where the light turns on."""
     to_level: float
+    """Level where the light reaches max_brightness."""
     off_level: float | None = None
+    """Level where the light turns off. None means it stays on."""
     min_brightness: int = MIN_BRIGHTNESS
+    """Brightness at from_level, percent."""
     max_brightness: int = MAX_BRIGHTNESS
+    """Brightness at to_level, percent."""
     off_transition: float = OFF_TRANSITION
+    """Seconds the light takes to fade off."""
     triggered: bool = False
+    """Wait for start() before acting."""
     log: Callable[[str], None] = _quiet
+    """Gets one line per change to the light or arming."""
     debug: Callable[[str], None] = _quiet
+    """Gets one line per update that did nothing."""
     store: Store | None = None
+    """Where a triggered fade saves its armed level. None means it is not saved."""
     now: Callable[[], float] = time.time
-    # Level the ramp starts from; None while a triggered fade is not armed.
+    """Current time in seconds, saved with the armed level."""
     ramp_from: float | None = field(default=None, init=False)
+    """Level the ramp starts from. None while a triggered fade is not armed."""
     # True while a brighter manual level is being kept, so it is logged once.
     _kept: bool = field(default=False, init=False, repr=False)
     # True while the level is inside the ramp, so leaving it is logged once.
@@ -90,6 +107,7 @@ class LightFade:
 
     @property
     def rising(self) -> bool:
+        """True if to_level is above from_level."""
         return self.to_level > self.from_level
 
     def _ahead(self, a: float, b: float) -> bool:

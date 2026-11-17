@@ -20,8 +20,8 @@ bedroom_fade:
 
 Settings
 --------
-Each field of LightFadeSettings has a description. The docs site renders
-them as the settings table. Unknown settings are an error.
+Each field of LightFadeSettings has a docstring. The docs site renders
+them as the settings table and the API reference. Unknown settings are an error.
 
 Restarts
 --------
@@ -60,26 +60,38 @@ STATE_DIR = "ha_automations_state"  # in AppDaemon's config directory, outside a
 
 
 class LightFadeSettings(Config):
-    light: str = Field(description="Light to control, e.g. `light.bedroom_lamp`")
-    detector: DetectorConfig = Field(description="What sets the level. Only `kind: sun`, sun elevation in degrees")
-    start: tuple[TriggerConfig, ...] = Field(
-        (), description="Triggers that start the fade. Empty means it runs whenever the level is between from_level and to_level"
-    )
-    from_level: float = Field(description="Level where the light turns on")
-    to_level: float = Field(description="Level where the light reaches max_brightness")
-    off_level: float | None = Field(None, description="Level where the light turns off. Unset means it stays on")
-    off_time: str | None = Field(
-        None, description='Time of day the light turns off, e.g. `"23:00:00"`. Unset means no set time'
-    )
-    min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100, description="Brightness when the light turns on, percent")
-    max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100, description="Brightness at to_level, percent")
-    off_transition: float = Field(OFF_TRANSITION, ge=0, description="How long the light takes to fade off, seconds")
+    """Settings for LightFadeApp, read from apps.yaml."""
+
+    light: str
+    """Light to control, e.g. `light.bedroom_lamp`."""
+    detector: DetectorConfig
+    """What sets the level. Only `kind: sun`, sun elevation in degrees."""
+    start: tuple[TriggerConfig, ...] = ()
+    """Triggers that start the fade. Empty means it runs whenever the level is between from_level and to_level."""
+    from_level: float
+    """Level where the light turns on."""
+    to_level: float
+    """Level where the light reaches max_brightness."""
+    off_level: float | None = None
+    """Level where the light turns off. Unset means it stays on."""
+    off_time: str | None = None
+    """Time of day the light turns off, e.g. `"23:00:00"`. Unset means no set time."""
+    min_brightness: int = Field(MIN_BRIGHTNESS, ge=0, le=100)
+    """Brightness when the light turns on, percent."""
+    max_brightness: int = Field(MAX_BRIGHTNESS, ge=0, le=100)
+    """Brightness at to_level, percent."""
+    off_transition: float = Field(OFF_TRANSITION, ge=0)
+    """How long the light takes to fade off, seconds."""
 
 
 class LightFadeApp(hass.Hass):
+    """AppDaemon app that runs a LightFade with settings from apps.yaml."""
+
     Settings: ClassVar[type[LightFadeSettings]] = LightFadeSettings
+    """Settings model the app reads from apps.yaml."""
 
     def initialize(self):
+        """Read the settings, start listening and restore a saved fade. AppDaemon calls this on load."""
         args = {k: v for k, v in self.args.items() if k not in APPDAEMON_KEYS}
         s = self.Settings.model_validate(args)
         self.fade = LightFade(

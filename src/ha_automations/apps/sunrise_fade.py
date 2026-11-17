@@ -18,22 +18,28 @@ Developer tools > Events, Event type `<app name>_start`, e.g. `bedroom_sunrise_s
 """
 from typing import ClassVar
 
-from pydantic import Field
-
 from ha_automations.apps.light_fade import LightFadeApp, LightFadeSettings
 from ha_automations.detectors import Sun
 from ha_automations.triggers import Daily, TriggerConfig
 
 
 class SunriseSettings(LightFadeSettings):
-    detector: Sun = Field(Sun(), description="Uses the sun's elevation")
-    start: tuple[TriggerConfig, ...] = Field(
-        (Daily(daily="05:45:00"),), description="When to check if it is still dark"
-    )
-    from_level: float = Field(-6, description="Civil dawn. The light turns on if the sun is below this at the start time")
-    to_level: float = Field(0, description="Sunrise. The light reaches full brightness")
-    off_level: float | None = Field(4, description="A little after sunrise. The light turns off")
+    """Settings for SunriseFade. Same as LightFadeSettings, with sunrise defaults."""
+
+    detector: Sun = Sun()
+    """Uses the sun's elevation."""
+    start: tuple[TriggerConfig, ...] = (Daily(daily="05:45:00"),)
+    """When to check if it is still dark."""
+    from_level: float = -6
+    """Civil dawn. The light turns on if the sun is below this at the start time."""
+    to_level: float = 0
+    """Sunrise. The light reaches full brightness."""
+    off_level: float | None = 4
+    """A little after sunrise. The light turns off."""
 
 
 class SunriseFade(LightFadeApp):
+    """LightFadeApp with SunriseSettings."""
+
     Settings: ClassVar[type[LightFadeSettings]] = SunriseSettings
+    """Settings model the app reads from apps.yaml."""
