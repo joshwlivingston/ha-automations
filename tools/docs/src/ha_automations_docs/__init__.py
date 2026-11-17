@@ -13,8 +13,9 @@ archived docs for tags that no longer exist. With --release-assets, release docs
 new ones go to, docs-site.tar.gz on their GitHub release instead of the archive; CI uses this.
 Builds run in parallel; see Output for how their logs show. The site puts the
 newest release at the root, every tag under v/<version>/ and dev under v/dev/. The version list
-baked into each page is rewritten so every page lists every version. Dev's changelog page
-starts with the Unreleased section of CHANGELOG.md.
+baked into each page is rewritten so every page lists every version. The changelog page of dev
+and dev tags starts with the Unreleased section of CHANGELOG.md; archived dev tags built with an
+older DEV_BUILD build again.
 """
 
 import argparse
@@ -52,8 +53,11 @@ ASSET = "docs-site.tar.gz"
 GIT_LOCK = threading.Lock()
 # Build output that only applies to a full Great Docs versioned site.
 DROP = ["v", "_redirects", "vercel.json", "_version_map.json"]
-# Runs great-docs for dev with the Unreleased changes on the changelog page.
-DEV_BUILD = "tools/docs/src/ha_automations_docs/dev_build.py"
+# Runs great-docs with the Unreleased changes on the changelog page. Dev and dev tags run this
+# copy, not the one in their checkout, so tags made before it existed get it too.
+DEV_BUILD = Path(__file__).with_name("dev_build.py")
+# Suffix of the file next to an archived dev tag that holds the DEV_BUILD hash it was built with.
+TOOL_SUFFIX = ".tool"
 
 
 class DocsError(Exception):
@@ -313,7 +317,7 @@ def build_checkout(
             with open(tree / "great-docs.yml", "a") as f:
                 f.write(f"\nversions: {json.dumps(versions)}\n")
             run(tag, ["uv", "sync", "--locked", "--group", "docs"], tree, env)
-            run(tag, ["uv", "run", "--no-sync", *great_docs(tag, tree)], tree, env)
+            run(tag, ["uv", "run", "--no-sync", *great_docs(tag)], tree, env)
             site = tree / "great-docs" / "_site"
             for name in DROP:
                 path = site / name
@@ -328,15 +332,38 @@ def build_checkout(
                 git("worktree", "remove", "--force", str(tree))
 
 
-def great_docs(tag: str, tree: Path) -> list[str]:
-    """Returns the command that builds the site in tree.
+def great_docs(tag: str) -> list[str]:
+    """Returns the command that builds the site of version tag.
 
-    Dev runs DEV_BUILD, which adds the Unreleased changes to the changelog, if tree has it.
+    Dev and dev tags run DEV_BUILD, which adds the Unreleased changes to the changelog.
     """
     cmd = ["build", "--latest-only"]
-    if tag == DEV and (tree / DEV_BUILD).is_file():
-        return ["python", "-m", "ha_automations_docs.dev_build", *cmd]
-    return ["great-docs", *cmd]
+    if is_release(tag):
+        return ["great-docs", *cmd]
+    return ["python", str(DEV_BUILD), *cmd]
+
+
+def tool_hash() -> str:
+    """Returns the hash of DEV_BUILD."""
+    return hashlib.sha256(DEV_BUILD.read_bytes()).hexdigest()
+
+
+def tool_path(dest: Path) -> Path:
+    """Returns the file that holds the DEV_BUILD hash the archived docs in dest were built with."""
+    return dest.with_name(dest.name + TOOL_SUFFIX)
+
+
+def archived(version: str, dest: Path) -> bool:
+    """Returns whether dest holds docs for version that need no rebuild.
+
+    A dev tag also needs to have been built with the current DEV_BUILD.
+    """
+    if not (dest / "index.html").is_file():
+        return False
+    if is_release(version):
+        return True
+    path = tool_path(dest)
+    return path.is_file() and path.read_text().strip() == tool_hash()
 
 
 @functools.cache
@@ -462,6 +489,8 @@ def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path
         ):
             print(f"Removing {path}: no tag v{path.name}")
             shutil.rmtree(path)
+        elif path.suffix == TOOL_SUFFIX and path.stem not in versions:
+            path.unlink()
     stamp_path(out).unlink(missing_ok=True)
     if out.exists():
         shutil.rmtree(out)
@@ -475,7 +504,7 @@ def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path
             # The release asset is the record, so a cached copy is not trusted to be attached.
             if not download_release_docs(v, dest):
                 builds.append((f"v{v}", v, dest, False))
-        elif (dest / "index.html").is_file():
+        elif archived(v, dest):
             print(f"Using {dest} for {v} (--rebuild to build it again)")
         else:
             builds.append((f"v{v}", v, dest, False))
@@ -488,6 +517,9 @@ def build_unlocked(args: argparse.Namespace, versions: list[str] | None) -> Path
             for ref, tag, dest, working in builds
         ]:
             job.result()
+    for _, tag, dest, _ in builds[1:]:
+        if not is_release(tag):
+            tool_path(dest).write_text(tool_hash() + "\n")
     if args.release_assets:
         for _, tag, dest, _ in builds[1:]:
             if is_release(tag) and not upload_release_docs(tag, dest):

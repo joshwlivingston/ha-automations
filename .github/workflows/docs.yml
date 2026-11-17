@@ -38,13 +38,14 @@ jobs:
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
       - uses: quarto-dev/quarto-actions/setup@v2
-      # Dev tag docs are cached between runs; a new key is saved when the tags change.
+      # Dev tag docs are cached between runs; a new key is saved when the tags or dev_build.py
+      # change. Dev tags built with an older dev_build.py build again.
       - id: tags
         run: echo "hash=$(git ls-remote --tags --refs origin 'v*' | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: .docs-archive
-          key: docs-archive-${{ steps.tags.outputs.hash }}
+          key: docs-archive-${{ hashFiles('tools/docs/src/ha_automations_docs/dev_build.py') }}-${{ steps.tags.outputs.hash }}
           restore-keys: docs-archive-
       # Release docs come from, and new ones go to, docs-site.tar.gz on each GitHub release.
       - run: uv run --locked docs build --ref HEAD --release-assets

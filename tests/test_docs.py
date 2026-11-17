@@ -12,11 +12,14 @@ from ha_automations_docs import (
     DEV_BUILD,
     Output,
     apply_working_changes,
+    archived,
     download_release_docs,
     existing_tags,
     fit,
     great_docs,
     set_version_map,
+    tool_hash,
+    tool_path,
     upload_release_docs,
     version_map,
     versions_of,
@@ -246,13 +249,20 @@ def test_unreleased_notes_empty_without_the_section():
     assert unreleased_notes("## [Unreleased]\n\n## [0.1.0]\n\n- Old.\n") == ""
 
 
-def test_dev_runs_dev_build_when_the_checkout_has_it(tmp_path: Path):
-    assert great_docs(DEV, tmp_path)[0] == "great-docs"
-    (tmp_path / DEV_BUILD).parent.mkdir(parents=True)
-    (tmp_path / DEV_BUILD).touch()
-    assert great_docs(DEV, tmp_path)[:3] == [
-        "python",
-        "-m",
-        "ha_automations_docs.dev_build",
-    ]
-    assert great_docs("0.1.0", tmp_path)[0] == "great-docs"
+def test_dev_and_dev_tags_run_dev_build():
+    assert great_docs(DEV)[:2] == ["python", str(DEV_BUILD)]
+    assert great_docs("0.2.0.9007")[:2] == ["python", str(DEV_BUILD)]
+    assert great_docs("0.2.0")[0] == "great-docs"
+
+
+def test_archived_dev_tags_need_the_current_dev_build(tmp_path: Path):
+    for version in ("0.2.0", "0.2.0.9007"):
+        (tmp_path / version).mkdir()
+        (tmp_path / version / "index.html").touch()
+    assert archived("0.2.0", tmp_path / "0.2.0")
+    assert not archived("0.2.0.9007", tmp_path / "0.2.0.9007")
+    tool_path(tmp_path / "0.2.0.9007").write_text("old\n")
+    assert not archived("0.2.0.9007", tmp_path / "0.2.0.9007")
+    tool_path(tmp_path / "0.2.0.9007").write_text(tool_hash() + "\n")
+    assert archived("0.2.0.9007", tmp_path / "0.2.0.9007")
+    assert not archived("0.2.0.9008", tmp_path / "0.2.0.9008")
