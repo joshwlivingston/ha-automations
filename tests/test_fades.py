@@ -2,12 +2,14 @@ import pytest
 
 from ha_automations.detectors import Reading
 from ha_automations.fades import (
-    MAX_BRIGHTNESS,
-    MIN_BRIGHTNESS,
     ON_TRANSITION,
     LightFade,
     brighten_only,
 )
+
+# Fixed range so tests do not depend on the default brightness range.
+LO, HI = 5, 50
+RANGE = {"min_brightness": LO, "max_brightness": HI}
 
 
 class FakeDetector:
@@ -46,11 +48,11 @@ class FakeLight:
 
 
 def falling(det, light):
-    return LightFade(det, light, from_level=6, to_level=-6)
+    return LightFade(det, light, from_level=6, to_level=-6, min_brightness=LO, max_brightness=HI)
 
 
 def rising(det, light):
-    return LightFade(det, light, from_level=-6, to_level=0, off_level=4, triggered=True)
+    return LightFade(det, light, from_level=-6, to_level=0, off_level=4, triggered=True, min_brightness=LO, max_brightness=HI)
 
 
 def test_brighten_only_raises():
@@ -75,10 +77,10 @@ def test_falling_brightens_through_window():
     det, light = FakeDetector(6, False), FakeLight()
     fade = falling(det, light)
     assert fade.update()
-    assert light.pct == MIN_BRIGHTNESS
+    assert light.pct == LO
     det.level = -6
     assert fade.update()
-    assert light.pct == MAX_BRIGHTNESS
+    assert light.pct == HI
 
 
 def test_falling_ignores_wrong_direction_and_out_of_range():
@@ -93,13 +95,13 @@ def test_falling_ignores_wrong_direction_and_out_of_range():
 def test_falling_acts_within_end_margin():
     light = FakeLight()
     assert falling(FakeDetector(-6.5, False), light).update()
-    assert light.pct == MAX_BRIGHTNESS
+    assert light.pct == HI
 
 
 def test_untriggered_start_is_update():
     light = FakeLight()
     assert falling(FakeDetector(0, False), light).start()
-    assert light.pct > MIN_BRIGHTNESS
+    assert light.pct > LO
 
 
 def test_triggered_does_nothing_until_started():
@@ -120,10 +122,10 @@ def test_triggered_full_cycle():
     det, light = FakeDetector(-10, True), FakeLight()
     fade = rising(det, light)
     assert fade.start()
-    assert light.calls == [("on", MIN_BRIGHTNESS, ON_TRANSITION)]
+    assert light.calls == [("on", LO, ON_TRANSITION)]
     det.level = 0
     fade.update()
-    assert light.pct == MAX_BRIGHTNESS
+    assert light.pct == HI
     det.level = 4
     fade.update()
     assert light.calls[-1] == ("off", fade.off_transition)
@@ -207,8 +209,8 @@ class Script:
         return "\n".join(self.lines)
 
 
-SUNRISE = {"from_level": -6, "to_level": 0, "off_level": 4, "triggered": True}
-SUNSET = {"from_level": 6, "to_level": -6}
+SUNRISE = {"from_level": -6, "to_level": 0, "off_level": 4, "triggered": True, **RANGE}
+SUNSET = {"from_level": 6, "to_level": -6, **RANGE}
 
 
 def test_sunrise_morning_log(snapshot):

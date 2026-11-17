@@ -64,6 +64,8 @@ A light fade with other defaults: subclass `LightFadeSettings` for the defaults 
 
 Every change bumps the dev version, for example `uv version 0.1.0.9004`.
 
+Default arguments are subject to change. A change to a default is a patch release.
+
 ```sh
 uv run release dev                              # tag the current dev version and deploy it
 uv run release prod [patch|minor|major|X.Y.Z]   # release vX.Y.Z, default patch
@@ -105,4 +107,8 @@ The site has a version selector:
 
 ## Commits
 
-One-line conventional commits. `feat` and `fix` PRs add a user-facing line under `## [Unreleased]` in `CHANGELOG.md`.
+One-line conventional commits. `feat`, `fix` and `args` PRs add a user-facing line under `## [Unreleased]` in `CHANGELOG.md`.
+
+| Type | For | Release |
+|---|---|---|
+| `args` | A change to a default argument | patch |
