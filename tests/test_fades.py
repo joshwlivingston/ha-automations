@@ -3,6 +3,7 @@ import pytest
 from ha_automations.detectors import Reading
 from ha_automations.fades import (
     ON_TRANSITION,
+    RESTORE_MAX_AGE,
     LightFade,
     brighten_only,
 )
@@ -163,50 +164,67 @@ def test_stop_when_off_does_nothing():
 
 
 class FakeStore:
-    def __init__(self, value=None):
-        self.value = value
+    def __init__(self, record=None):
+        self.record = record
+
+    def __str__(self):
+        return "store"
 
     def load(self):
-        return self.value
+        return self.record
 
-    def save(self, value):
-        self.value = value
+    def save(self, record):
+        self.record = record
+
+
+NOW = 1000.0
+
+
+def armed(ramp_from, age=0):
+    return {"ramp_from": ramp_from, "armed_at": NOW - age}
+
+
+def stored(fade, store):
+    fade.store, fade.now = store, lambda: NOW
+    return fade
 
 
 def test_store_follows_arming():
     det, light, store = FakeDetector(-10, True), FakeLight(), FakeStore()
-    fade = rising(det, light)
-    fade.store = store
+    fade = stored(rising(det, light), store)
     fade.start()
-    assert store.value == -10
+    assert store.record == armed(-10)
     det.level = 4
     fade.update()
-    assert store.value is None
+    assert store.record is None
 
 
 def test_restore_resumes_ramp():
     det, light = FakeDetector(-3, True), FakeLight()
-    fade = rising(det, light)
-    fade.store = FakeStore(-10)
+    fade = stored(rising(det, light), FakeStore(armed(-10, age=RESTORE_MAX_AGE)))
     assert fade.restore()
     assert fade.ramp_from == -10
     assert LO < light.pct < HI
 
 
 def test_restore_past_off_level_turns_off():
-    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(-10)
-    fade = rising(det, light)
-    fade.store = store
+    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(armed(-10))
+    fade = stored(rising(det, light), store)
     fade.restore()
     assert light.calls == [("off", fade.off_transition)]
-    assert store.value is None
+    assert store.record is None
 
 
-def test_restore_without_saved_level_stays_disarmed():
-    light = FakeLight()
-    fade = rising(FakeDetector(-3, True), light)
-    fade.store = FakeStore()
+@pytest.mark.parametrize(
+    "record",
+    [None, armed(-10, age=RESTORE_MAX_AGE + 1), armed(-10, age=-1), {"ramp_from": -10}, {"ramp_from": "x", "armed_at": NOW}],
+)
+def test_restore_ignores_missing_old_or_bad_record(record):
+    light, store = FakeLight(), FakeStore(record)
+    fade = stored(rising(FakeDetector(-3, True), light), store)
     assert not fade.restore()
+    assert fade.ramp_from is None
+    assert store.record is None
     assert light.calls == []
 
 
@@ -299,11 +317,14 @@ def test_sunset_evening_log(snapshot):
 
 
 def test_restore_log(snapshot):
-    s = Script(-3, True, store=FakeStore(-10), **SUNRISE)
+    s = Script(-3, True, store=FakeStore(armed(-10)), now=lambda: NOW, **SUNRISE)
     s.lines.append("> restore()")
     s.fade.restore()
     s.sun(4.2)
-    assert str(s) == snapshot
+    old = Script(-3, True, store=FakeStore(armed(-10, age=RESTORE_MAX_AGE + 1)), now=lambda: NOW, **SUNRISE)
+    old.lines.append("> restore() # armed too long ago")
+    old.fade.restore()
+    assert f"{s}\n{old}" == snapshot
 
 
 def test_off_time_log(snapshot):

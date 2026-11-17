@@ -46,12 +46,11 @@ from ha_automations.fades import (
     MAX_BRIGHTNESS,
     MIN_BRIGHTNESS,
     OFF_TRANSITION,
-    RESTORE_MAX_AGE,
     LightFade,
     line,
 )
 from ha_automations.lights import HassLight
-from ha_automations.store import FileStore
+from ha_automations.store import JsonFile
 from ha_automations.triggers import Daily, Event, Trigger, TriggerConfig
 
 # Keys AppDaemon itself puts in app args.
@@ -93,7 +92,7 @@ class LightFadeApp(hass.Hass):
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
             triggered=bool(s.start),
-            store=FileStore(self.config_dir / STATE_DIR / f"{self.name}.json", RESTORE_MAX_AGE),
+            store=JsonFile(self.config_dir / STATE_DIR / f"{self.name}.json"),
             log=self.log,
             debug=lambda msg: self.log(msg, level="DEBUG"),
         )

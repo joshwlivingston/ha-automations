@@ -26,6 +26,9 @@
   > sun(4.2)
     INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
     INFO  disarm: reached off_level; until next start trigger
+  > restore() # armed too long ago
+    INFO  skip restore: armed too long ago; ramp_from=-10deg
+    INFO  skip: not armed
   '''
 # ---
 # name: test_sunrise_morning_log
