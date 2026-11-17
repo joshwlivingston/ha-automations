@@ -3,6 +3,7 @@ import pytest
 from ha_automations.detectors import Reading
 from ha_automations.fades import (
     ON_TRANSITION,
+    RESTORE_MAX_AGE,
     LightFade,
     brighten_only,
 )
@@ -162,6 +163,77 @@ def test_stop_when_off_does_nothing():
     assert fade.ramp_from == fade.from_level
 
 
+class FakeStore:
+    def __init__(self, record=None):
+        self.record = record
+
+    def __str__(self):
+        return "store"
+
+    def load(self):
+        return self.record
+
+    def save(self, record):
+        self.record = record
+
+
+NOW = 1000.0
+
+
+def armed(ramp_from, age=0):
+    return {"ramp_from": ramp_from, "armed_at": NOW - age}
+
+
+def stored(fade, store):
+    fade.store, fade.now = store, lambda: NOW
+    return fade
+
+
+def test_store_follows_arming():
+    det, light, store = FakeDetector(-10, True), FakeLight(), FakeStore()
+    fade = stored(rising(det, light), store)
+    fade.start()
+    assert store.record == armed(-10)
+    det.level = 4
+    fade.update()
+    assert store.record is None
+
+
+def test_restore_resumes_ramp():
+    det, light = FakeDetector(-3, True), FakeLight()
+    fade = stored(rising(det, light), FakeStore(armed(-10, age=RESTORE_MAX_AGE)))
+    assert fade.restore()
+    assert fade.ramp_from == -10
+    assert LO < light.pct < HI
+
+
+def test_restore_past_off_level_turns_off():
+    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(armed(-10))
+    fade = stored(rising(det, light), store)
+    fade.restore()
+    assert light.calls == [("off", fade.off_transition)]
+    assert store.record is None
+
+
+@pytest.mark.parametrize(
+    "record",
+    [None, armed(-10, age=RESTORE_MAX_AGE + 1), armed(-10, age=-1), {"ramp_from": -10}, {"ramp_from": "x", "armed_at": NOW}],
+)
+def test_restore_ignores_missing_old_or_bad_record(record):
+    light, store = FakeLight(), FakeStore(record)
+    fade = stored(rising(FakeDetector(-3, True), light), store)
+    assert not fade.restore()
+    assert fade.ramp_from is None
+    assert store.record is None
+    assert light.calls == []
+
+
+def test_restore_untriggered_updates():
+    light = FakeLight()
+    assert falling(FakeDetector(0, False), light).restore()
+    assert light.pct > LO
+
+
 def test_brighten_only_reports_change():
     assert brighten_only(FakeLight(20), 30)
     assert not brighten_only(FakeLight(50), 30)
@@ -242,6 +314,17 @@ def test_sunset_evening_log(snapshot):
     for level in (6, 0, -6, -6.5, -8):
         s.sun(level)
     assert str(s) == snapshot
+
+
+def test_restore_log(snapshot):
+    s = Script(-3, True, store=FakeStore(armed(-10)), now=lambda: NOW, **SUNRISE)
+    s.lines.append("> restore()")
+    s.fade.restore()
+    s.sun(4.2)
+    old = Script(-3, True, store=FakeStore(armed(-10, age=RESTORE_MAX_AGE + 1)), now=lambda: NOW, **SUNRISE)
+    old.lines.append("> restore() # armed too long ago")
+    old.fade.restore()
+    assert f"{s}\n{old}" == snapshot
 
 
 def test_off_time_log(snapshot):

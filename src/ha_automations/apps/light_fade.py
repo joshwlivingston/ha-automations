@@ -23,6 +23,12 @@ Settings
 Each field of LightFadeSettings has a description. The docs site renders
 them as the settings table. Unknown settings are an error.
 
+Restarts
+--------
+A triggered fade saves its armed level to a file in STATE_DIR under
+AppDaemon's config directory and restores it on load. Every fade checks the
+level once on load.
+
 Testing
 -------
 Developer tools > Events, Event type `<app name>` plus EVENT_SUFFIX > Fire event.
@@ -44,11 +50,13 @@ from ha_automations.fades import (
     line,
 )
 from ha_automations.lights import HassLight
+from ha_automations.store import JsonFile
 from ha_automations.triggers import Daily, Event, Trigger, TriggerConfig
 
 # Keys AppDaemon itself puts in app args.
 APPDAEMON_KEYS = frozenset(f.alias or name for name, f in AppConfig.model_fields.items())
 EVENT_SUFFIX = "_start"
+STATE_DIR = "ha_automations_state"  # in AppDaemon's config directory, outside apps/, which deploys replace
 
 
 class LightFadeSettings(Config):
@@ -84,6 +92,7 @@ class LightFadeApp(hass.Hass):
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
             triggered=bool(s.start),
+            store=JsonFile(self.config_dir / STATE_DIR / f"{self.name}.json"),
             log=self.log,
             debug=lambda msg: self.log(msg, level="DEBUG"),
         )
@@ -94,6 +103,7 @@ class LightFadeApp(hass.Hass):
             Daily(daily=s.off_time).listen(self, lambda: self.fade.stop("reached off_time"))
         self.fade.detector.listen(self.fade.update)
         self.log(self._summary(s))
+        self.fade.restore()
 
     def _summary(self, s: LightFadeSettings) -> str:
         """One line saying what this app controls and when it starts."""

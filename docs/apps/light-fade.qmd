@@ -122,8 +122,7 @@ Fire it during the fade and the light updates. Fire it outside the fade and the 
 
 ## Notes
 
-- No `start`: runs every day. Restart is safe.
-- With `start`: restart during the fade stops it until the next trigger.
+- Restarts during a fade: the fade carries on. See [Manual control](manual-control.qmd#restarts).
 - No `start`, with `off_level`: turning the light back on after `off_level` lasts only until the next sun update.
 - No `start`, with `off_time`: if the sun is still between `from_level` and `to_level` at `off_time`, the light comes back on at the next sun update.
 - Manual changes: [Manual control](manual-control.qmd).

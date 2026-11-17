@@ -2,12 +2,14 @@
 
 Levels are in the detector's units.
 """
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ha_automations.curves import ease_in, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
+from ha_automations.store import Store
 
 MIN_BRIGHTNESS = 0
 MAX_BRIGHTNESS = 100
@@ -15,6 +17,7 @@ RAMP_TRANSITION = 60      # seconds, per brightness step
 ON_TRANSITION = 5         # seconds, first step after start() arms the fade
 OFF_TRANSITION = 300      # seconds, fade-out at off_level
 END_MARGIN = 1            # keep acting this far past to_level to catch a missed final update
+RESTORE_MAX_AGE = 12 * 3600  # seconds; a fade armed longer ago is not restored, so it never resumes the next day
 
 
 def brightness_at(p: float, lo: int, hi: int) -> int:
@@ -54,7 +57,9 @@ class LightFade:
     from_level, then ramp from that level until off_level.
 
     `log` gets one line per change to the light or arming; `debug` gets
-    updates that did nothing.
+    updates that did nothing. A triggered fade saves its armed level and the
+    time from `now` in `store`, if set, and restore() re-arms it from there
+    after a restart.
     """
 
     detector: Detector
@@ -68,6 +73,8 @@ class LightFade:
     triggered: bool = False
     log: Callable[[str], None] = _quiet
     debug: Callable[[str], None] = _quiet
+    store: Store | None = None
+    now: Callable[[], float] = time.time
     # Level the ramp starts from; None while a triggered fade is not armed.
     ramp_from: float | None = field(default=None, init=False)
     # True while a brighter manual level is being kept, so it is logged once.
@@ -116,7 +123,7 @@ class LightFade:
         if not self.triggered:
             return self.update(explain=True)
         level, rising = self.detector.read()
-        self.ramp_from = None
+        self._arm(None)
         if reason := self._skip(level, rising):
             self.log(line("skip arm", reason, self._at(level) if level is not None else ""))
             return False
@@ -125,12 +132,49 @@ class LightFade:
             detail = f"{self._at(level)} {self._u('from_level', self.from_level)}"
             self.log(line("skip arm", "past from_level", detail))
             return False
-        self.ramp_from = level
+        self._arm(level)
         self._kept = False
         off = f" {self._u('off_level', self.off_level)}" if self.off_level is not None else ""
         detail = f"{self._at(level)} {self._u('to_level', self.to_level)}{off}"
         self.log(line("arm", "short of from_level", detail))
         return self.update(ON_TRANSITION, explain=True)
+
+    def restore(self) -> bool:
+        """Re-arm a triggered fade from `store`, if armed within RESTORE_MAX_AGE, then update.
+
+        Run once on load. False if nothing was done.
+        """
+        if self.triggered and self.store is not None:
+            ramp_from = self._restored_level(self.store)
+            if ramp_from is not None:
+                self.ramp_from = ramp_from
+                self.log(line("arm", "armed before restart", self._u("ramp_from", ramp_from)))
+        return self.update(explain=True)
+
+    def _restored_level(self, store: Store) -> float | None:
+        """The armed level in `store` if still usable, else None. Clears an unusable record."""
+        record = store.load()
+        if record is None:
+            return None
+        try:
+            ramp_from, armed_at = float(record["ramp_from"]), float(record["armed_at"])
+        except (KeyError, TypeError, ValueError):
+            reason, detail = "unreadable record", str(store)
+        else:
+            if 0 <= self.now() - armed_at <= RESTORE_MAX_AGE:
+                return ramp_from
+            reason, detail = "armed too long ago", self._u("ramp_from", ramp_from)
+        self.log(line("skip restore", reason, detail))
+        store.save(None)
+        return None
+
+    def _arm(self, level: float | None) -> None:
+        """Set the armed level and save it with the time in `store` if it changed."""
+        if level == self.ramp_from:
+            return
+        self.ramp_from = level
+        if self.store is not None:
+            self.store.save(None if level is None else {"ramp_from": level, "armed_at": self.now()})
 
     def stop(self, reason: str) -> bool:
         """Turn the light off and disarm a triggered fade. False if already off."""
@@ -147,7 +191,7 @@ class LightFade:
         else:
             noop(line("skip", "already off", where))
         if self.triggered and self.ramp_from is not None:
-            self.ramp_from = None
+            self._arm(None)
             self.log(line("disarm", reason, "until next start trigger"))
         return turned_off
 

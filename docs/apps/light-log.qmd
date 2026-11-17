@@ -23,11 +23,14 @@ INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 | `load: init` | The app loaded. Lists its settings. |
 | `check: start trigger` | A start trigger or the test event fired |
 | `arm: short of from_level` | The fade starts now |
+| `arm: armed before restart` | The app restarted during a fade and carries on |
 | `set: ramp N%` | The light was set to a brightness. `N%` is how far through the fade the sun is. |
 | `keep: above target` | The light is already brighter than the fade, usually from a manual change. Left alone. |
 | `ramp done: past to_level` | The fade reached full brightness |
 | `off: reached off_level`, `off: reached off_time` | The light is fading off |
 | `disarm: reached off_level`, `disarm: reached off_time` | The fade is over until the next start trigger |
+| `skip restore: armed too long ago` | The app restarted, and the saved fade is too old to carry on |
+| `skip restore: unreadable record` | The app restarted, and the saved fade could not be read |
 | `skip arm: <reason>` | A start trigger or test event fired, and the fade did not start. Reasons below. |
 | `skip: <reason>` | A sun update changed nothing. Reasons below. |
 
