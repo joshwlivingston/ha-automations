@@ -63,7 +63,7 @@ See [Start triggers](start-triggers.qmd).
 
 | Sun | Light |
 |---|---|
-| Reaches `from_level` | On at `min_brightness` |
+| Reaches `from_level` | Starts at `min_brightness` |
 | Between `from_level` and `to_level` | Brightens, slowly at first |
 | Reaches `to_level` | At `max_brightness` |
 | Reaches `off_level`, if set | Fades off over `off_transition` seconds |

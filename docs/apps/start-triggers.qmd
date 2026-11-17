@@ -12,7 +12,7 @@ title: Start triggers
 With triggers:
 
 1. A trigger fires.
-2. The light turns on at `min_brightness`.
+2. The light starts at `min_brightness`.
 3. The light brightens from the sun's level at that moment.
 4. At `off_level`, the light turns off and the app waits for the next trigger.
 

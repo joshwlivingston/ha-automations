@@ -9,8 +9,8 @@ from ha_automations.curves import ease_in, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
 
-MIN_BRIGHTNESS = 5        # lowest level the bulb visibly glows at
-MAX_BRIGHTNESS = 50
+MIN_BRIGHTNESS = 0
+MAX_BRIGHTNESS = 100
 RAMP_TRANSITION = 60      # seconds, per brightness step
 ON_TRANSITION = 5         # seconds, first step after start() arms the fade
 OFF_TRANSITION = 300      # seconds, fade-out at off_level
