@@ -44,8 +44,9 @@ def unreleased_release(notes: str, repo_url: str) -> dict[str, object]:
 
 def main() -> None:
     """Runs the great-docs command line with the Unreleased section added to the changelog."""
-    from great_docs import cli
-    from great_docs.core import GreatDocs
+    # great-docs is in the docs group, which CI's checks do not install.
+    from great_docs import cli  # pyright: ignore[reportMissingImports]
+    from great_docs.core import GreatDocs  # pyright: ignore[reportMissingImports]
 
     notes = unreleased_notes(Path(CHANGELOG).read_text(encoding="utf-8"))
     fetch = GreatDocs._fetch_github_releases  # pyright: ignore[reportPrivateUsage]
