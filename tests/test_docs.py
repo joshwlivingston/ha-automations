@@ -8,11 +8,14 @@ import pytest
 import ha_automations_docs
 from ha_automations_docs import (
     ASSET,
+    DEV,
+    DEV_BUILD,
     Output,
     apply_working_changes,
     download_release_docs,
     existing_tags,
     fit,
+    great_docs,
     set_version_map,
     upload_release_docs,
     version_map,
@@ -20,6 +23,7 @@ from ha_automations_docs import (
     working_changes,
     working_hash,
 )
+from ha_automations_docs.dev_build import unreleased_notes
 
 
 def test_versions_of_releases_and_dev_tags_newest_first():
@@ -227,3 +231,28 @@ def test_attach_refuses_non_release_tags(tag: str):
         ha_automations_docs.attach(
             ha_automations_docs.parser().parse_args(["attach", tag])
         )
+
+
+def test_unreleased_notes_reads_only_the_unreleased_section():
+    changelog = (
+        "# Changelog\n\nIntro.\n\n## [Unreleased]\n\n### Bugfixes\n\n- Fix (#2).\n\n"
+        "## [0.1.0] - 2026-01-01\n\n- Old (#1).\n\n[0.1.0]: https://example.com\n"
+    )
+    assert unreleased_notes(changelog) == "### Bugfixes\n\n- Fix (#2)."
+
+
+def test_unreleased_notes_empty_without_the_section():
+    assert unreleased_notes("# Changelog\n\n## [0.1.0]\n\n- Old.\n") == ""
+    assert unreleased_notes("## [Unreleased]\n\n## [0.1.0]\n\n- Old.\n") == ""
+
+
+def test_dev_runs_dev_build_when_the_checkout_has_it(tmp_path: Path):
+    assert great_docs(DEV, tmp_path)[0] == "great-docs"
+    (tmp_path / DEV_BUILD).parent.mkdir(parents=True)
+    (tmp_path / DEV_BUILD).touch()
+    assert great_docs(DEV, tmp_path)[:3] == [
+        "python",
+        "-m",
+        "ha_automations_docs.dev_build",
+    ]
+    assert great_docs("0.1.0", tmp_path)[0] == "great-docs"

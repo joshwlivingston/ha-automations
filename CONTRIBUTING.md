@@ -102,6 +102,7 @@ The site has a version selector:
 - Each tag builds once and is reused after that: locally from `.docs-archive/`, in CI from `docs-site.tar.gz` on its GitHub release (releases) or the Actions cache (dev tags). `--rebuild` builds every tag again; in CI, delete a release's `docs-site.tar.gz` to rebuild it.
 - Only tags that also exist on `origin` build. Docs for deleted tags are dropped.
 - Versions that need building build in parallel (`--jobs`). A terminal shows one live status line per build; each build's full log prints as one block when it finishes (a collapsible group in GitHub Actions).
+- The Changelog page comes from GitHub releases. `dev` builds through `ha_automations_docs.dev_build`, which puts the `## [Unreleased]` section of `CHANGELOG.md` first.
 - `preview` skips the build when the site matches the working tree, the tags and the docs tool; `--build` builds anyway.
 - CI's `release` job attaches a release's docs right after publishing it (`uv run docs attach vX.Y.Z`). The docs workflow runs `uv run docs build --ref HEAD --release-assets` and deploys to GitHub Pages on each push to `main`, when CI passes on a new tag, and when a tag is deleted; it also attaches docs to any release still missing them. GitHub sends no event when more than three tags are deleted at once, so `uv run release` starts the docs workflow itself after deleting dev tags. After deleting tags by hand, run `gh workflow run docs.yml`.
 

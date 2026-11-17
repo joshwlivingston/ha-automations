@@ -13,7 +13,8 @@ archived docs for tags that no longer exist. With --release-assets, release docs
 new ones go to, docs-site.tar.gz on their GitHub release instead of the archive; CI uses this.
 Builds run in parallel; see Output for how their logs show. The site puts the
 newest release at the root, every tag under v/<version>/ and dev under v/dev/. The version list
-baked into each page is rewritten so every page lists every version.
+baked into each page is rewritten so every page lists every version. Dev's changelog page
+starts with the Unreleased section of CHANGELOG.md.
 """
 
 import argparse
@@ -51,6 +52,8 @@ ASSET = "docs-site.tar.gz"
 GIT_LOCK = threading.Lock()
 # Build output that only applies to a full Great Docs versioned site.
 DROP = ["v", "_redirects", "vercel.json", "_version_map.json"]
+# Runs great-docs for dev with the Unreleased changes on the changelog page.
+DEV_BUILD = "tools/docs/src/ha_automations_docs/dev_build.py"
 
 
 class DocsError(Exception):
@@ -310,12 +313,7 @@ def build_checkout(
             with open(tree / "great-docs.yml", "a") as f:
                 f.write(f"\nversions: {json.dumps(versions)}\n")
             run(tag, ["uv", "sync", "--locked", "--group", "docs"], tree, env)
-            run(
-                tag,
-                ["uv", "run", "--no-sync", "great-docs", "build", "--latest-only"],
-                tree,
-                env,
-            )
+            run(tag, ["uv", "run", "--no-sync", *great_docs(tag, tree)], tree, env)
             site = tree / "great-docs" / "_site"
             for name in DROP:
                 path = site / name
@@ -328,6 +326,17 @@ def build_checkout(
         finally:
             with GIT_LOCK:
                 git("worktree", "remove", "--force", str(tree))
+
+
+def great_docs(tag: str, tree: Path) -> list[str]:
+    """Returns the command that builds the site in tree.
+
+    Dev runs DEV_BUILD, which adds the Unreleased changes to the changelog, if tree has it.
+    """
+    cmd = ["build", "--latest-only"]
+    if tag == DEV and (tree / DEV_BUILD).is_file():
+        return ["python", "-m", "ha_automations_docs.dev_build", *cmd]
+    return ["great-docs", *cmd]
 
 
 @functools.cache

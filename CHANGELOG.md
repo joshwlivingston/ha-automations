@@ -13,6 +13,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 - The docs site rebuilds when a tag is pushed or deleted (#19).
 - Building several docs versions at once no longer fails (#21).
+- The dev docs Changelog page lists unreleased changes first (#26).
 
 ### Defaults
 
