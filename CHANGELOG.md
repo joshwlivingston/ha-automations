@@ -4,10 +4,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
-- Light apps fade over the full brightness range by default: `min_brightness` is 0 and `max_brightness` is 100.
 - The docs update after each release and dev release, and drop deleted dev tags.
 - Docs builds no longer fail when several versions build at once.
 - `uv run release prod` no longer fails when GitHub deletes the release branch on merge, and finishes a release that was merged but not tagged.
+
+### Defaults
+
+| App | Setting | Was | Now |
+|---|---|---|---|
+| Light apps | `min_brightness` | 5 | 0 |
+| Light apps | `max_brightness` | 50 | 100 |
 
 ## [0.2.0] - 2026-11-15
 

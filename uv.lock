@@ -1113,7 +1113,7 @@ wheels = [
 
 [[package]]
 name = "ha-automations"
-version = "0.2.0.9007"
+version = "0.2.0.9008"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },

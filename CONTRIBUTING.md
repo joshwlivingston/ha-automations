@@ -107,7 +107,7 @@ The site has a version selector:
 
 ## Commits
 
-One-line conventional commits. `feat`, `fix` and `args` PRs add a user-facing line under `## [Unreleased]` in `CHANGELOG.md`.
+One-line conventional commits. `feat` and `fix` PRs add a user-facing line under `## [Unreleased]` in `CHANGELOG.md`. `args` PRs add a row to the `### Defaults` table there instead (App, Setting, Was, Now).
 
 | Type | For | Release |
 |---|---|---|
