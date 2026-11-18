@@ -12,6 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 - Light apps with start triggers, like Sunrise Fade, carry on a fade after AppDaemon or Home Assistant restarts (#28).
 - Light apps without start triggers, like Sunset Fade, set the light as soon as they load, not at the next sun update (#28).
+- Light app log lines say `start`, `skip start`, `end` and `skip: waiting for start trigger` in place of `arm`, `skip arm`, `disarm` and `skip: not armed` (#32).
 
 - `uv run release prod` no longer fails when GitHub deletes the release branch on merge (#18).
 - Rerun `uv run release prod` to tag and deploy a release that was merged but never tagged (#18).

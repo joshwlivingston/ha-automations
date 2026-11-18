@@ -7,34 +7,34 @@
     INFO  off: reached off_time; light.x transition=300s
   > stop()
     INFO  skip: already off; light.x
-  # sunrise, armed
+  # sunrise, started
   > start()
-    INFO  arm: short of from_level; sun=-10.0deg to_level=0deg off_level=4deg
+    INFO  start: short of from_level; sun=-10.0deg to_level=0deg off_level=4deg
     INFO  set: ramp 0%; light.x 5% sun=-10.0deg transition=5s
   > stop()
     INFO  off: reached off_time; light.x transition=300s
-    INFO  disarm: reached off_time; until next start trigger
+    INFO  end: reached off_time; until next start trigger
   > sun(-4)
-    DEBUG skip: not armed
+    DEBUG skip: waiting for start trigger
   '''
 # ---
 # name: test_restore_log
   '''
   > restore()
-    INFO  arm: armed before restart; ramp_from=-10deg
+    INFO  resume: started before restart; ramp_from=-10deg
     INFO  set: ramp 70%; light.x 31% sun=-3.0deg transition=60s
   > sun(4.2)
     INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
-    INFO  disarm: reached off_level; until next start trigger
-  > restore() # armed too long ago
-    INFO  skip restore: armed too long ago; ramp_from=-10deg
-    INFO  skip: not armed
+    INFO  end: reached off_level; until next start trigger
+  > restore() # started too long ago
+    INFO  skip resume: started too long ago; ramp_from=-10deg
+    INFO  skip: waiting for start trigger
   '''
 # ---
 # name: test_sunrise_dim_log
   '''
   > start()
-    INFO  arm: short of from_level; sun=-8.0deg to_level=0deg off_level=12deg
+    INFO  start: short of from_level; sun=-8.0deg to_level=0deg off_level=12deg
     INFO  set: ramp 0%; light.x 5% sun=-8.0deg transition=5s
   > sun(0)
     INFO  set: ramp 100%; light.x 50% sun=0.0deg transition=60s
@@ -47,15 +47,15 @@
     INFO  keep: raised by hand; light.x 45% target=6% sun=9.0deg
   > sun(12.1)
     INFO  off: reached off_level; light.x sun=12.1deg off_level=12deg transition=300s
-    INFO  disarm: reached off_level; until next start trigger
+    INFO  end: reached off_level; until next start trigger
   '''
 # ---
 # name: test_sunrise_morning_log
   '''
   > sun(-12)
-    DEBUG skip: not armed
+    DEBUG skip: waiting for start trigger
   > start()
-    INFO  arm: short of from_level; sun=-12.0deg to_level=0deg off_level=4deg
+    INFO  start: short of from_level; sun=-12.0deg to_level=0deg off_level=4deg
     INFO  set: ramp 0%; light.x 5% sun=-12.0deg transition=5s
   > sun(-8)
     INFO  set: ramp 33%; light.x 14% sun=-8.0deg transition=60s
@@ -76,22 +76,22 @@
     DEBUG skip: past to_level; sun=2.0deg to_level=0deg
   > sun(4.2)
     INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
-    INFO  disarm: reached off_level; until next start trigger
+    INFO  end: reached off_level; until next start trigger
   > sun(6)
-    DEBUG skip: not armed
+    DEBUG skip: waiting for start trigger
   '''
 # ---
 # name: test_sunrise_start_skip_log
   '''
   # sun at -2, rising=True
   > start()
-    INFO  skip arm: past from_level; sun=-2.0deg from_level=-6deg
+    INFO  skip start: past from_level; sun=-2.0deg from_level=-6deg
   # sun at -10, rising=False
   > start()
-    INFO  skip arm: sun falling; sun=-10.0deg
+    INFO  skip start: sun falling; sun=-10.0deg
   # sun at None, rising=None
   > start()
-    INFO  skip arm: no sun reading
+    INFO  skip start: no sun reading
   '''
 # ---
 # name: test_sunset_evening_log

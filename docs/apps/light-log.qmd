@@ -8,13 +8,13 @@ Lines the light apps write to the AppDaemon log. Sun values print as `deg`, for 
 
 ```
 INFO bedroom_sunrise: check: start trigger; daily at 05:45:00
-INFO bedroom_sunrise: arm: short of from_level; sun=-9.8deg to_level=0deg off_level=12deg
+INFO bedroom_sunrise: start: short of from_level; sun=-9.8deg to_level=0deg off_level=12deg
 INFO bedroom_sunrise: set: ramp 0%; light.bedroom_lamp 5% sun=-9.8deg transition=5s
 INFO bedroom_sunrise: set: ramp 70%; light.bedroom_lamp 31% sun=-3.0deg transition=60s
 INFO bedroom_sunrise: set: ramp 100%; light.bedroom_lamp 100% sun=0.0deg transition=60s
 INFO bedroom_sunrise: set: dim 50%; light.bedroom_lamp 35% sun=6.0deg transition=60s
 INFO bedroom_sunrise: off: reached off_level; light.bedroom_lamp sun=12.0deg off_level=12deg transition=300s
-INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
+INFO bedroom_sunrise: end: reached off_level; until next start trigger
 ```
 
 ## Lines
@@ -23,18 +23,18 @@ INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 |---|---|
 | `load: init` | The app loaded. Lists its settings. |
 | `check: start trigger` | A start trigger or the test event fired |
-| `arm: short of from_level` | The fade starts now |
-| `arm: armed before restart` | The app restarted during a fade and carries on |
+| `start: short of from_level` | The fade starts now |
+| `resume: started before restart` | The app restarted during a fade and carries on |
 | `set: ramp N%` | The light was set to a brightness. `N%` is how far through the fade the sun is. |
 | `set: dim N%` | The light was dimmed. `N%` is how far the sun is from `to_level` to `off_level`. |
 | `keep: raised by hand` | The light was turned up while dimming. Left alone until `off_level`. |
 | `keep: above target` | The light is already brighter than the fade, usually from a manual change. Left alone. |
 | `ramp done: past to_level` | The fade reached full brightness. Not logged with `dim`. |
 | `off: reached off_level`, `off: reached off_time` | The light is fading off |
-| `disarm: reached off_level`, `disarm: reached off_time` | The fade is over until the next start trigger |
-| `skip restore: armed too long ago` | The app restarted, and the saved fade is too old to carry on |
-| `skip restore: unreadable record` | The app restarted, and the saved fade could not be read |
-| `skip arm: <reason>` | A start trigger or test event fired, and the fade did not start. Reasons below. |
+| `end: reached off_level`, `end: reached off_time` | The fade is over until the next start trigger |
+| `skip resume: started too long ago` | The app restarted, and the saved fade is too old to carry on |
+| `skip resume: unreadable record` | The app restarted, and the saved fade could not be read |
+| `skip start: <reason>` | A start trigger or test event fired, and the fade did not start. Reasons below. |
 | `skip: <reason>` | A sun update changed nothing. Reasons below. |
 
 ## Skip reasons
@@ -44,7 +44,7 @@ INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 | `past from_level` | The sun has already passed `from_level`. Too late today. |
 | `sun rising`, `sun falling` | The sun is moving the other way from the fade |
 | `no sun reading` | Home Assistant has no sun elevation. Check the Sun integration. |
-| `not armed` | The app has start triggers and none has started it |
+| `waiting for start trigger` | The app has start triggers and none has started the fade yet. The `load` line shows when they fire. |
 | `short of ramp_from` | The sun has not reached the fade's start yet |
 | `past to_level` | The fade is over for today |
 | `already off` | Past `off_level` or at `off_time`, and the light is off |

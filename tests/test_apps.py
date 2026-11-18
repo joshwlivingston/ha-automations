@@ -155,13 +155,13 @@ def sun(elevation, rising=True):
 def test_sunrise_restores_after_restart(tmp_path):
     path = tmp_path / STATE_DIR / "bedroom_sunrise.json"
     path.parent.mkdir()
-    path.write_text(json.dumps({"ramp_from": -10, "armed_at": time.time()}))
+    path.write_text(json.dumps({"ramp_from": -10, "started_at": time.time()}))
     app = build(SunriseFade, {"light": "light.x"}, "bedroom_sunrise", tmp_path, sun(-3))
     assert app.fade.ramp_from == -10
     assert app.services[0][0] == "light/turn_on"
 
 
-def test_sunrise_saves_when_armed(tmp_path):
+def test_sunrise_saves_when_started(tmp_path):
     app = build(SunriseFade, {"light": "light.x"}, "bedroom_sunrise", tmp_path, sun(-10))
     app.fade.start()
     path = tmp_path / STATE_DIR / "bedroom_sunrise.json"

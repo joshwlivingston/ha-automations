@@ -25,7 +25,7 @@ them as the settings table and the API reference. Unknown settings are an error.
 
 Restarts
 --------
-A triggered fade saves its armed level to a file in STATE_DIR under
+A triggered fade saves its start level to a file in STATE_DIR under
 AppDaemon's config directory and restores it on load. Every fade checks the
 level once on load.
 
