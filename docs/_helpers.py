@@ -12,7 +12,7 @@ from pydantic_core import PydanticUndefined
 
 from ha_automations.apps.light_fade import LightFadeSettings
 from ha_automations.curves import progress
-from ha_automations.fades import brightness_at
+from ha_automations.fades import brightness_at, dimmed_at
 
 ACCENT = "#e8902a"
 MUTED = "#8a8f98"
@@ -96,6 +96,8 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
             return 0
         if off is not None and sign * (x - off) >= 0:
             return 0
+        if s.get("dim") and sign * (x - end) > 0:
+            return dimmed_at(progress(x, end, off), hi_b)
         return brightness_at(progress(x, ramp, end), lo_b, hi_b)
 
     ys = [brightness(x) for x in xs]

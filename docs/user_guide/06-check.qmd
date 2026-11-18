@@ -9,7 +9,7 @@ guide-section: Get started
 2. Find a `load: init` line starting with the app's name. It lists the app's settings.
 
 ```
-INFO bedroom_sunrise: load: init; light=light.bedroom_lamp detector=sun from_level=-6deg to_level=0deg off_level=4deg brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
+INFO bedroom_sunrise: load: init; light=light.bedroom_lamp detector=sun from_level=-6deg to_level=0deg off_level=12deg dim=on brightness=5%..50% start="daily at 05:45:00" test_event=bedroom_sunrise_start
 ```
 
 No load line: look for an error naming the app. See [Troubleshooting](troubleshooting.qmd).

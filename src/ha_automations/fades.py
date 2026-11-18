@@ -31,6 +31,11 @@ def brightness_at(p: float, lo: int, hi: int) -> int:
     return round(lerp(lo, hi, ease_in(p)))
 
 
+def dimmed_at(p: float, hi: int) -> int:
+    """Brightness at progress `p` of a dim from `hi` to 0, the brightening curve reversed."""
+    return round(lerp(0, hi, ease_in(1 - p)))
+
+
 def brighten_only(light: Light, pct: int, transition: float = RAMP_TRANSITION) -> bool:
     """Raise `light` to `pct`, never lower it, so manual increases stick. True if raised."""
     if pct > light.brightness_pct():
@@ -55,8 +60,9 @@ class LightFade:
     The fade runs in whichever direction from_level to to_level points, and
     ignores readings while the detector reports the opposite direction.
     Brightness goes from min_brightness to max_brightness, never lowered.
-    Once the level reaches off_level, if set, the light turns off. stop()
-    turns it off at any time.
+    With `dim`, brightness then goes from max_brightness to 0 between
+    to_level and off_level, never raised. Once the level reaches off_level,
+    if set, the light turns off. stop() turns it off at any time.
 
     Untriggered fades act whenever the level is between from_level and
     to_level. Triggered fades do nothing until start() finds the level short of
@@ -82,6 +88,8 @@ class LightFade:
     """Brightness at to_level, percent."""
     off_transition: float = OFF_TRANSITION
     """Seconds the light takes to fade off."""
+    dim: bool = False
+    """Dim from max_brightness at to_level to off at off_level. Needs off_level."""
     triggered: bool = False
     """Wait for start() before acting."""
     log: Callable[[str], None] = _quiet
@@ -98,10 +106,14 @@ class LightFade:
     _kept: bool = field(default=False, init=False, repr=False)
     # True while the level is inside the ramp, so leaving it is logged once.
     _in_ramp: bool = field(default=False, init=False, repr=False)
+    # Brightness this fade last set, to tell a manual increase while dimming. None if unknown.
+    _set_pct: int | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         if self.from_level == self.to_level:
             raise ValueError("from_level and to_level must differ")
+        if self.dim and self.off_level is None:
+            raise ValueError("dim needs off_level")
         if not self.triggered:
             self.ramp_from = self.from_level
 
@@ -231,6 +243,8 @@ class LightFade:
             at = f"{self._at(level)} {self._u('off_level', self.off_level)}"
             self._turn_off("reached off_level", at, noop)
             return True
+        if self.dim and self._ahead(level, self.to_level):
+            return self._dim(level, transition, noop)
         end = self.to_level + (END_MARGIN if self.rising else -END_MARGIN)
         if self._ahead(self.ramp_from, level) or self._ahead(level, end):
             if not self._ahead(level, end):
@@ -249,6 +263,7 @@ class LightFade:
         pct = brightness_at(p, self.min_brightness, self.max_brightness)
         if brighten_only(self.light, pct, transition):
             self._kept = False
+            self._set_pct = pct
             detail = f"{self.light} {pct}% {self._at(level)} transition={transition:g}s"
             self.log(line("set", f"ramp {p:.0%}", detail))
         elif not self._kept and (now := self.light.brightness_pct()) > pct:
@@ -258,4 +273,27 @@ class LightFade:
         else:
             detail = f"{self.light} {self.light.brightness_pct()}% target={pct}% {self._at(level)}"
             noop(line("skip", "at or above target", detail))
+        return True
+
+    def _dim(self, level: float, transition: float, noop: Callable[[str], None]) -> bool:
+        """Lower the light toward its dim brightness at `level`. Leaves it off or raised by hand."""
+        assert self.off_level is not None
+        self._in_ramp = False
+        p = progress(level, self.to_level, self.off_level)
+        pct = max(1, dimmed_at(p, self.max_brightness))
+        now = self.light.brightness_pct()
+        raised = self._set_pct is not None and now > self._set_pct + 1
+        if 0 < now and pct < now and not raised:
+            self.light.turn_on(pct, transition)
+            self._kept = False
+            self._set_pct = pct
+            detail = f"{self.light} {pct}% {self._at(level)} transition={transition:g}s"
+            self.log(line("set", f"dim {p:.0%}", detail))
+        elif raised and not self._kept:
+            self._kept = True
+            detail = f"{self.light} {now}% target={pct}% {self._at(level)}"
+            self.log(line("keep", "raised by hand", detail))
+        else:
+            reason = "off" if now == 0 else "at or below target"
+            noop(line("skip", reason, f"{self.light} {now}% target={pct}% {self._at(level)}"))
         return True

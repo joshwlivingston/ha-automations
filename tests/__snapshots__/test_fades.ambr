@@ -31,6 +31,25 @@
     INFO  skip: not armed
   '''
 # ---
+# name: test_sunrise_dim_log
+  '''
+  > start()
+    INFO  arm: short of from_level; sun=-8.0deg to_level=0deg off_level=12deg
+    INFO  set: ramp 0%; light.x 5% sun=-8.0deg transition=5s
+  > sun(0)
+    INFO  set: ramp 100%; light.x 50% sun=0.0deg transition=60s
+  > sun(3)
+    INFO  set: dim 25%; light.x 32% sun=3.0deg transition=60s
+  > sun(6)
+    INFO  set: dim 50%; light.x 18% sun=6.0deg transition=60s
+  > manual(45)
+  > sun(9)
+    INFO  keep: raised by hand; light.x 45% target=6% sun=9.0deg
+  > sun(12.1)
+    INFO  off: reached off_level; light.x sun=12.1deg off_level=12deg transition=300s
+    INFO  disarm: reached off_level; until next start trigger
+  '''
+# ---
 # name: test_sunrise_morning_log
   '''
   > sun(-12)

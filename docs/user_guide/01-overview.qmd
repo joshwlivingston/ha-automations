@@ -13,7 +13,7 @@ See [Apps](../docs/apps/index.qmd) for the full list.
 
 | App | What it does |
 |---|---|
-| [Sunrise Fade](../docs/apps/sunrise-fade.qmd) | Turns a light on dim before dawn. Brightens it as the sun rises. Turns it off after sunrise. |
+| [Sunrise Fade](../docs/apps/sunrise-fade.qmd) | Turns a light on dim before dawn. Brightens it as the sun rises. Dims it after sunrise, then turns it off. |
 | [Sunset Fade](../docs/apps/sunset-fade.qmd) | Brightens a light as the sun sets. Leaves it on. |
 | [Light Fade](../docs/apps/light-fade.qmd) | A fade with your own levels, start times and direction. |
 
