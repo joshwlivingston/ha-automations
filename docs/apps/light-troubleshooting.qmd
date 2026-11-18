@@ -14,10 +14,10 @@ For problems with loading or deploys, see [Troubleshooting](../../user-guide/tro
 
 ## The light does nothing
 
-- Fire the test event. A `skip arm` or `skip` line gives the reason. See [Light app log](light-log.qmd).
-- `skip arm: past from_level`: the sun was already past `from_level` at the start time. For Sunrise Fade in summer, set an earlier `start`.
+- Fire the test event. A `skip start` or `skip` line gives the reason. See [Light app log](light-log.qmd).
+- `skip start: past from_level`: the sun was already past `from_level` at the start time. For Sunrise Fade in summer, set an earlier `start`.
 - `skip: sun rising` or `skip: sun falling`: you fired the test event at the wrong time of day for this app. Fire it during the fade.
-- `skip: not armed`: the app has start triggers and none has fired today. Fire the test event, or wait for the trigger.
+- `skip: waiting for start trigger`: the app has start triggers and none has fired today. Fire the test event, or wait for the trigger.
 - `no sun reading`: the Sun integration is missing or disabled. Add it under **Settings > Devices & services**.
 - The light's entity ID in `light` is wrong. Check it under **Settings > Devices & services > Entities**.
 - The light does not support brightness. Light apps need dimmable lights.

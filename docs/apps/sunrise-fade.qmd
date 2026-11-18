@@ -113,8 +113,8 @@ bedroom_sunrise:
 | When | Result |
 |---|---|
 | Before dawn | Light turns on |
-| After `from_level` | Log: `skip arm: past from_level` |
-| Evening | Log: `skip arm: sun falling` |
+| After `from_level` | Log: `skip start: past from_level` |
+| Evening | Log: `skip start: sun falling` |
 
 ## Notes
 

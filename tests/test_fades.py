@@ -191,7 +191,7 @@ def test_untriggered_off_level_turns_off_once():
     assert light.calls == [("off", fade.off_transition)]
 
 
-def test_stop_turns_off_and_disarms():
+def test_stop_turns_off_and_ends():
     det, light = FakeDetector(-10, True), FakeLight()
     fade = rising(det, light)
     fade.start()
@@ -228,8 +228,8 @@ class FakeStore:
 NOW = 1000.0
 
 
-def armed(ramp_from, age=0):
-    return {"ramp_from": ramp_from, "armed_at": NOW - age}
+def started(ramp_from, age=0):
+    return {"ramp_from": ramp_from, "started_at": NOW - age}
 
 
 def stored(fade, store):
@@ -237,11 +237,11 @@ def stored(fade, store):
     return fade
 
 
-def test_store_follows_arming():
+def test_store_follows_start():
     det, light, store = FakeDetector(-10, True), FakeLight(), FakeStore()
     fade = stored(rising(det, light), store)
     fade.start()
-    assert store.record == armed(-10)
+    assert store.record == started(-10)
     det.level = 4
     fade.update()
     assert store.record is None
@@ -249,14 +249,14 @@ def test_store_follows_arming():
 
 def test_restore_resumes_ramp():
     det, light = FakeDetector(-3, True), FakeLight()
-    fade = stored(rising(det, light), FakeStore(armed(-10, age=RESTORE_MAX_AGE)))
+    fade = stored(rising(det, light), FakeStore(started(-10, age=RESTORE_MAX_AGE)))
     assert fade.restore()
     assert fade.ramp_from == -10
     assert LO < light.pct < HI
 
 
 def test_restore_past_off_level_turns_off():
-    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(armed(-10))
+    det, light, store = FakeDetector(6, True), FakeLight(40), FakeStore(started(-10))
     fade = stored(rising(det, light), store)
     fade.restore()
     assert light.calls == [("off", fade.off_transition)]
@@ -265,7 +265,7 @@ def test_restore_past_off_level_turns_off():
 
 @pytest.mark.parametrize(
     "record",
-    [None, armed(-10, age=RESTORE_MAX_AGE + 1), armed(-10, age=-1), {"ramp_from": -10}, {"ramp_from": "x", "armed_at": NOW}],
+    [None, started(-10, age=RESTORE_MAX_AGE + 1), started(-10, age=-1), {"ramp_from": -10}, {"ramp_from": "x", "started_at": NOW}],
 )
 def test_restore_ignores_missing_old_or_bad_record(record):
     light, store = FakeLight(), FakeStore(record)
@@ -376,12 +376,12 @@ def test_sunset_evening_log(snapshot):
 
 
 def test_restore_log(snapshot):
-    s = Script(-3, True, store=FakeStore(armed(-10)), now=lambda: NOW, **SUNRISE)
+    s = Script(-3, True, store=FakeStore(started(-10)), now=lambda: NOW, **SUNRISE)
     s.lines.append("> restore()")
     s.fade.restore()
     s.sun(4.2)
-    old = Script(-3, True, store=FakeStore(armed(-10, age=RESTORE_MAX_AGE + 1)), now=lambda: NOW, **SUNRISE)
-    old.lines.append("> restore() # armed too long ago")
+    old = Script(-3, True, store=FakeStore(started(-10, age=RESTORE_MAX_AGE + 1)), now=lambda: NOW, **SUNRISE)
+    old.lines.append("> restore() # started too long ago")
     old.fade.restore()
     assert f"{s}\n{old}" == snapshot
 
@@ -393,7 +393,7 @@ def test_off_time_log(snapshot):
     sunset.stop()
     sunset.stop()
     sunrise = Script(-10, True, **SUNRISE)
-    sunrise.lines.append("# sunrise, armed")
+    sunrise.lines.append("# sunrise, started")
     sunrise.start()
     sunrise.stop()
     sunrise.sun(-4)
