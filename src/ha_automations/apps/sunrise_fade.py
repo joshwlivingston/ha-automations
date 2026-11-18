@@ -1,4 +1,4 @@
-"""Turn a light on dim before dawn and brighten it as the sun rises.
+"""Turn a light on dim before dawn and brighten it as the sun rises, then dim it.
 
 Usage
 -----
@@ -34,8 +34,10 @@ class SunriseSettings(LightFadeSettings):
     """Civil dawn. The light turns on if the sun is below this at the start time."""
     to_level: float = 0
     """Sunrise. The light reaches full brightness."""
-    off_level: float | None = 4
-    """A little after sunrise. The light turns off."""
+    off_level: float | None = 12
+    """Well after sunrise. The light has dimmed and turns off."""
+    dim: bool = True
+    """Dims from full brightness at to_level to off at off_level."""
 
 
 class SunriseFade(LightFadeApp):

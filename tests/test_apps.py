@@ -54,7 +54,7 @@ def build(cls, args, app_name="test", config_dir=None, states=None):
 def test_sunrise_defaults():
     app = build(SunriseFade, {"light": "light.x"}, app_name="bedroom_sunrise")
     f = app.fade
-    assert (f.from_level, f.to_level, f.off_level, f.triggered) == (-6, 0, 4, True)
+    assert (f.from_level, f.to_level, f.off_level, f.triggered, f.dim) == (-6, 0, 12, True, True)
     assert app.daily == ["05:45:00"]
     assert app.events == ["bedroom_sunrise_start"]
 
@@ -64,6 +64,11 @@ def test_sunset_defaults():
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered) == (12, -8, None, False)
     assert app.daily == ["23:00:00"]
+
+
+def test_dim_without_off_level_rejected():
+    with pytest.raises(ValueError, match="dim needs off_level"):
+        build(SunriseFade, {"light": "light.x", "off_level": None})
 
 
 def test_off_time_null_schedules_nothing():

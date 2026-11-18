@@ -38,7 +38,7 @@ from typing import ClassVar
 
 import appdaemon.plugins.hass.hassapi as hass
 from appdaemon.models.config.app import AppConfig
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from ha_automations.config import Config
 from ha_automations.detectors import DetectorConfig
@@ -82,6 +82,14 @@ class LightFadeSettings(Config):
     """Brightness at to_level, percent."""
     off_transition: float = Field(OFF_TRANSITION, ge=0)
     """How long the light takes to fade off, seconds."""
+    dim: bool = False
+    """Dim from max_brightness at to_level to off at off_level, slowly at the end. Needs off_level."""
+
+    @model_validator(mode="after")
+    def _dim_needs_off_level(self):
+        if self.dim and self.off_level is None:
+            raise ValueError("dim needs off_level")
+        return self
 
 
 class LightFadeApp(hass.Hass):
@@ -103,6 +111,7 @@ class LightFadeApp(hass.Hass):
             min_brightness=s.min_brightness,
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
+            dim=s.dim,
             triggered=bool(s.start),
             store=JsonFile(self.config_dir / STATE_DIR / f"{self.name}.json"),
             log=self.log,
@@ -128,6 +137,8 @@ class LightFadeApp(hass.Hass):
         ]
         if s.off_level is not None:
             fields.append(f"off_level={s.off_level:g}{u}")
+        if s.dim:
+            fields.append("dim=on")
         if s.off_time is not None:
             fields.append(f'off_time="{s.off_time}"')
         fields += [

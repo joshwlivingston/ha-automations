@@ -14,7 +14,7 @@ from ha_automations.apps import sunrise_fade
 S = sunrise_fade.SunriseSettings
 ```
 
-Turns a light on dim before dawn. Brightens it as the sun rises. Turns it off after sunrise.
+Turns a light on dim before dawn. Brightens it as the sun rises. Dims it after sunrise, then turns it off.
 
 ## Use it
 
@@ -48,6 +48,7 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd). `start`: see
 | `start` time, sun past `from_level` | Untouched until the next day |
 | Sun rising toward `to_level` | Brightens, slowly at first |
 | Sun reaches `to_level` | At `max_brightness` |
+| Sun rising toward `off_level` | Dims, slowly at the end |
 | Sun reaches `off_level` | Fades off over `off_transition` seconds |
 
 ```{python}
@@ -92,14 +93,14 @@ bedroom_sunrise:
     - daily: "sunrise - 00:30:00"
 ```
 
-**Brighter, stays on after sunrise**
+**Stays at full brightness after sunrise**
 
 ```yaml
 bedroom_sunrise:
   module: sunrise_fade
   class: SunriseFade
   light: light.bedroom_lamp
-  max_brightness: 80
+  dim: false
   off_level: null
 ```
 

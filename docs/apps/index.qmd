@@ -19,7 +19,7 @@ from ha_automations.apps import light_fade, sunrise_fade, sunset_fade
 #| output: asis
 h.compare_table([
     ("Sunrise Fade", "sunrise-fade.qmd", sunrise_fade.SunriseSettings,
-     "Turns a light on before dawn, brightens it to sunrise, then turns it off."),
+     "Turns a light on before dawn, brightens it to sunrise, then dims it off."),
     ("Sunset Fade", "sunset-fade.qmd", sunset_fade.SunsetSettings,
      "Brightens a light as the sun sets, then turns it off at night."),
     ("Light Fade", "light-fade.qmd", light_fade.LightFadeSettings,

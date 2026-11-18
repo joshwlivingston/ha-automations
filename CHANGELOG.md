@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ## [Unreleased]
 
+### New features
+
+- `dim` dims a light app's light from `max_brightness` at `to_level` to off at `off_level`, the brightening curve reversed. Sunrise Fade dims by default; set `dim: false` to hold full brightness (#31).
+
 ### Bugfixes
 
 - Light apps with start triggers, like Sunrise Fade, carry on a fade after AppDaemon or Home Assistant restarts (#28).
@@ -25,6 +29,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 | Light apps | `min_brightness` | 5 | 0 |
 | Light apps | `max_brightness` | 50 | 100 |
 | Sunset Fade | `from_level` | 6 | 12 |
+| Sunrise Fade | `off_level` | 4 | 12 |
 
 ## [0.2.0] - 2026-11-15
 

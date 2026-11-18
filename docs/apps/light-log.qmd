@@ -8,11 +8,12 @@ Lines the light apps write to the AppDaemon log. Sun values print as `deg`, for 
 
 ```
 INFO bedroom_sunrise: check: start trigger; daily at 05:45:00
-INFO bedroom_sunrise: arm: short of from_level; sun=-9.8deg to_level=0deg off_level=4deg
+INFO bedroom_sunrise: arm: short of from_level; sun=-9.8deg to_level=0deg off_level=12deg
 INFO bedroom_sunrise: set: ramp 0%; light.bedroom_lamp 5% sun=-9.8deg transition=5s
 INFO bedroom_sunrise: set: ramp 70%; light.bedroom_lamp 31% sun=-3.0deg transition=60s
-INFO bedroom_sunrise: ramp done: past to_level; sun=1.1deg to_level=0deg
-INFO bedroom_sunrise: off: reached off_level; light.bedroom_lamp sun=4.0deg off_level=4deg transition=300s
+INFO bedroom_sunrise: set: ramp 100%; light.bedroom_lamp 100% sun=0.0deg transition=60s
+INFO bedroom_sunrise: set: dim 50%; light.bedroom_lamp 35% sun=6.0deg transition=60s
+INFO bedroom_sunrise: off: reached off_level; light.bedroom_lamp sun=12.0deg off_level=12deg transition=300s
 INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 ```
 
@@ -25,8 +26,10 @@ INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 | `arm: short of from_level` | The fade starts now |
 | `arm: armed before restart` | The app restarted during a fade and carries on |
 | `set: ramp N%` | The light was set to a brightness. `N%` is how far through the fade the sun is. |
+| `set: dim N%` | The light was dimmed. `N%` is how far the sun is from `to_level` to `off_level`. |
+| `keep: raised by hand` | The light was turned up while dimming. Left alone until `off_level`. |
 | `keep: above target` | The light is already brighter than the fade, usually from a manual change. Left alone. |
-| `ramp done: past to_level` | The fade reached full brightness |
+| `ramp done: past to_level` | The fade reached full brightness. Not logged with `dim`. |
 | `off: reached off_level`, `off: reached off_time` | The light is fading off |
 | `disarm: reached off_level`, `disarm: reached off_time` | The fade is over until the next start trigger |
 | `skip restore: armed too long ago` | The app restarted, and the saved fade is too old to carry on |
@@ -46,5 +49,7 @@ INFO bedroom_sunrise: disarm: reached off_level; until next start trigger
 | `past to_level` | The fade is over for today |
 | `already off` | Past `off_level` or at `off_time`, and the light is off |
 | `at or above target` | The light is already at or above the fade's brightness |
+| `at or below target` | While dimming, the light is already at or below the fade's brightness |
+| `off` | While dimming, the light is off. Left off. |
 
 `skip` lines from sun updates are hidden at the default log level. They show after a test event, which logs every step. To see them all the time for one app, add `log_level: DEBUG` to its entry in `apps.yaml`.

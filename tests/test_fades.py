@@ -6,6 +6,7 @@ from ha_automations.fades import (
     RESTORE_MAX_AGE,
     LightFade,
     brighten_only,
+    dimmed_at,
 )
 
 # Fixed range so tests do not depend on the default brightness range.
@@ -133,6 +134,53 @@ def test_triggered_full_cycle():
     assert fade.ramp_from is None
     det.level = 5
     assert not fade.update()
+
+
+def test_dimmed_at_mirrors_brightening():
+    assert dimmed_at(0, HI) == HI
+    assert dimmed_at(1, HI) == 0
+    assert dimmed_at(0.5, 100) == 35  # drops fast at first, slowly at the end
+
+
+def dimming(det, light):
+    return LightFade(det, light, from_level=-6, to_level=0, off_level=12, dim=True, max_brightness=100)
+
+
+def test_dim_lowers_then_turns_off():
+    det, light = FakeDetector(0, True), FakeLight()
+    fade = dimming(det, light)
+    fade.update()
+    assert light.pct == 100
+    det.level = 6
+    fade.update()
+    assert light.pct == 35
+    det.level = 11.9
+    fade.update()
+    assert light.pct == 1
+    det.level = 12
+    fade.update()
+    assert light.calls[-1] == ("off", fade.off_transition)
+
+
+def test_dim_leaves_light_off_or_raised_by_hand():
+    det, light = FakeDetector(0, True), FakeLight()
+    fade = dimming(det, light)
+    fade.update()
+    det.level = 3
+    fade.update()
+    light.pct = 90
+    det.level = 6
+    fade.update()
+    assert light.pct == 90
+    light.pct = 0
+    det.level = 9
+    fade.update()
+    assert light.pct == 0
+
+
+def test_dim_needs_off_level():
+    with pytest.raises(ValueError, match="dim needs off_level"):
+        LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True)
 
 
 def test_untriggered_off_level_turns_off_once():
@@ -293,6 +341,17 @@ def test_sunrise_morning_log(snapshot):
     s.sun(-4)
     s.manual(80)
     for level in (-3.9, -2, 0, 0.5, 1.5, 2, 4.2, 6):
+        s.sun(level)
+    assert str(s) == snapshot
+
+
+def test_sunrise_dim_log(snapshot):
+    s = Script(-8, True, from_level=-6, to_level=0, off_level=12, dim=True, triggered=True, **RANGE)
+    s.start()
+    for level in (0, 3, 6):
+        s.sun(level)
+    s.manual(45)
+    for level in (9, 12.1):
         s.sun(level)
     assert str(s) == snapshot
 

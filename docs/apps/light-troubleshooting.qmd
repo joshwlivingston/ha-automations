@@ -27,7 +27,7 @@ For problems with loading or deploys, see [Troubleshooting](../../user-guide/tro
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Light will not get dimmer | Light apps never lower brightness | Turn it down after the fade, or lower `max_brightness` |
+| Light will not get dimmer | Light apps never lower brightness, except with `dim` | Turn it down after the fade, lower `max_brightness`, or set `dim: true` |
 | Light turns back on after you turn it off | The fade is still running | See [Manual control](manual-control.qmd), or disable the app |
 | Light turns off when you turn it on at night | App without start triggers is past `off_level` | See [Manual control](manual-control.qmd) |
 | Light jumps instead of fading | Some lights ignore transitions | Nothing to fix in the app. Check the light's integration. |
