@@ -27,8 +27,8 @@ class SunsetSettings(LightFadeSettings):
 
     detector: Sun = Sun()
     """Uses the sun's elevation."""
-    from_level: float = 6
-    """A little above the horizon. The light turns on."""
+    from_level: float = 12
+    """Well above the horizon. The light turns on."""
     to_level: float = -6
     """Civil dusk. The light reaches full brightness."""
     off_time: str | None = "23:00:00"
