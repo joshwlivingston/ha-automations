@@ -32,6 +32,7 @@ INFO bedroom_sunrise: end: reached off_level; until next start trigger
 | `ramp done: past to_level` | The fade reached full brightness. Not logged with `dim`. |
 | `off: reached off_level`, `off: reached off_time` | The light is fading off |
 | `end: reached off_level`, `end: reached off_time` | The fade is over until the next start trigger |
+| `skip resume: no saved fade` | The app restarted with no fade in progress |
 | `skip resume: started too long ago` | The app restarted, and the saved fade is too old to carry on |
 | `skip resume: unreadable record` | The app restarted, and the saved fade could not be read |
 | `skip start: <reason>` | A start trigger or test event fired, and the fade did not start. Reasons below. |

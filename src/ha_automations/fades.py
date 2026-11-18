@@ -185,6 +185,7 @@ class LightFade:
         """The start level in `store` if still usable, else None. Clears an unusable record."""
         record = store.load()
         if record is None:
+            self.log(line("skip resume", "no saved fade"))
             return None
         try:
             ramp_from, started_at = float(record["ramp_from"]), float(record["started_at"])
