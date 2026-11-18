@@ -62,7 +62,7 @@ def test_sunrise_defaults():
 def test_sunset_defaults():
     app = build(SunsetFade, {"light": "light.x", "to_level": -8})
     f = app.fade
-    assert (f.from_level, f.to_level, f.off_level, f.triggered) == (6, -8, None, False)
+    assert (f.from_level, f.to_level, f.off_level, f.triggered) == (12, -8, None, False)
     assert app.daily == ["23:00:00"]
 
 
@@ -81,7 +81,7 @@ def test_ignores_appdaemon_keys():
             "light": "light.x",
         },
     )
-    assert app.fade.from_level == 6
+    assert app.fade.from_level == 12
 
 
 def test_rejects_unknown_setting():

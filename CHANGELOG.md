@@ -24,6 +24,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 |---|---|---|---|
 | Light apps | `min_brightness` | 5 | 0 |
 | Light apps | `max_brightness` | 50 | 100 |
+| Sunset Fade | `from_level` | 6 | 12 |
 
 ## [0.2.0] - 2026-11-15
 
