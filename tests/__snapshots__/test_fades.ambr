@@ -29,6 +29,9 @@
   > restore() # started too long ago
     INFO  skip resume: started too long ago; ramp_from=-10deg
     INFO  skip: waiting for start trigger
+  > restore() # nothing saved
+    INFO  skip resume: no saved fade
+    INFO  skip: waiting for start trigger
   '''
 # ---
 # name: test_sunrise_dim_log

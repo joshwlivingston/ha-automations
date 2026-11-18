@@ -383,7 +383,10 @@ def test_restore_log(snapshot):
     old = Script(-3, True, store=FakeStore(started(-10, age=RESTORE_MAX_AGE + 1)), now=lambda: NOW, **SUNRISE)
     old.lines.append("> restore() # started too long ago")
     old.fade.restore()
-    assert f"{s}\n{old}" == snapshot
+    none = Script(4.2, True, store=FakeStore(None), now=lambda: NOW, **SUNRISE)
+    none.lines.append("> restore() # nothing saved")
+    none.fade.restore()
+    assert f"{s}\n{old}\n{none}" == snapshot
 
 
 def test_off_time_log(snapshot):

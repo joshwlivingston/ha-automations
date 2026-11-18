@@ -119,6 +119,6 @@ bedroom_sunrise:
 ## Notes
 
 - Summer: the sun may pass `from_level` before the `start` time. Use an earlier `start`, or `"sunrise - 00:30:00"`.
-- Restart during the fade: stops until the next `start`. Fire the test event to resume.
+- Restart during the fade: the fade carries on. A restart after `off_level` logs `skip resume: no saved fade`.
 - Manual changes: [Manual control](manual-control.qmd).
 - Problems: [Light app troubleshooting](light-troubleshooting.qmd).
