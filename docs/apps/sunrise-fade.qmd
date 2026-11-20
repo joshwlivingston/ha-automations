@@ -48,7 +48,7 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd). `start`: see
 | `start` time, sun past `from_level` | Untouched until the next day |
 | Sun rising toward `to_level` | Brightens, slowly at first |
 | Sun reaches `to_level` | At `max_brightness` |
-| Sun rising toward `off_level` | Dims, slowly at the end |
+| Sun rising toward `off_level` | Dims, fast at first and slowly at the end |
 | Sun reaches `off_level` | Fades off over `off_transition` seconds |
 
 ```{python}
