@@ -83,7 +83,7 @@ class LightFadeSettings(Config):
     off_transition: float = Field(OFF_TRANSITION, ge=0)
     """How long the light takes to fade off, seconds."""
     dim: bool = False
-    """Dim slightly between to_level and off_level, most of it near off_level. Needs off_level."""
+    """Dim smoothly from max_brightness at to_level until off at off_level. Needs off_level."""
 
     @model_validator(mode="after")
     def _dim_needs_off_level(self):

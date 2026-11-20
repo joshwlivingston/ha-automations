@@ -1,7 +1,8 @@
 """Easing and interpolation math. No Home Assistant imports."""
+import math
 
-DIM_DEPTH = 0.1
-"""Share of brightness ease_out_quartic removes by p = 1."""
+DIM_RATE = 0.0002
+"""How fast decay_quartic falls. Larger dims sooner."""
 
 
 def clamp(x, lo=0.0, hi=1.0):
@@ -19,9 +20,9 @@ def ease_in(p, k=1.5):
     return p ** k
 
 
-def ease_out_quartic(p, d=DIM_DEPTH):
-    """1 - d * p**4. Holds near 1, then falls to 1 - d at p = 1."""
-    return 1 - d * p ** 4
+def decay_quartic(x, d=DIM_RATE):
+    """exp(-d * x**4). 1 at x = 0, falls smoothly toward 0."""
+    return math.exp(-d * x ** 4)
 
 
 def lerp(a, b, t):

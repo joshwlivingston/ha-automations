@@ -136,10 +136,10 @@ def test_triggered_full_cycle():
     assert not fade.update()
 
 
-def test_dimmed_at_holds_then_falls():
+def test_dimmed_at_decays_smoothly():
     assert dimmed_at(0, 100) == 100
-    assert dimmed_at(0.5, 100) == 99
-    assert dimmed_at(1, 100) == 90
+    assert dimmed_at(6, 100) == 77
+    assert dimmed_at(12, 100) == 2
 
 
 def dimming(det, light):
@@ -153,10 +153,10 @@ def test_dim_lowers_then_turns_off():
     assert light.pct == 100
     det.level = 6
     fade.update()
-    assert light.pct == 99
+    assert light.pct == 77
     det.level = 11.9
     fade.update()
-    assert light.pct == 90
+    assert light.pct == 2
     det.level = 12
     fade.update()
     assert light.calls[-1] == ("off", fade.off_transition)
@@ -166,14 +166,14 @@ def test_dim_leaves_light_off_or_raised_by_hand():
     det, light = FakeDetector(0, True), FakeLight()
     fade = dimming(det, light)
     fade.update()
-    det.level = 3
+    det.level = 6
     fade.update()
     light.pct = 90
-    det.level = 6
+    det.level = 9
     fade.update()
     assert light.pct == 90
     light.pct = 0
-    det.level = 9
+    det.level = 11
     fade.update()
     assert light.pct == 0
 
@@ -348,10 +348,10 @@ def test_sunrise_morning_log(snapshot):
 def test_sunrise_dim_log(snapshot):
     s = Script(-8, True, from_level=-6, to_level=0, off_level=12, dim=True, triggered=True, **RANGE)
     s.start()
-    for level in (0, 6, 11):
+    for level in (0, 3, 6):
         s.sun(level)
-    s.manual(60)
-    for level in (11.5, 12.1):
+    s.manual(45)
+    for level in (9, 12.1):
         s.sun(level)
     assert str(s) == snapshot
 

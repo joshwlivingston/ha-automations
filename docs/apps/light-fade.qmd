@@ -66,7 +66,7 @@ See [Start triggers](start-triggers.qmd).
 | Reaches `from_level` | Starts at `min_brightness` |
 | Between `from_level` and `to_level` | Brightens, slowly at first |
 | Reaches `to_level` | At `max_brightness` |
-| Between `to_level` and `off_level`, with `dim` | Dims slightly, most of it near `off_level` |
+| Between `to_level` and `off_level`, with `dim` | Dims smoothly, then turns off |
 | Reaches `off_level`, if set | Fades off over `off_transition` seconds |
 | Moving the other way | Untouched |
 

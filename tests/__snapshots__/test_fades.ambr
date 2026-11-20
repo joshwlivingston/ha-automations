@@ -41,13 +41,13 @@
     INFO  set: ramp 0%; light.x 5% sun=-8.0deg transition=5s
   > sun(0)
     INFO  set: ramp 100%; light.x 50% sun=0.0deg transition=60s
+  > sun(3)
+    INFO  set: dim 25%; light.x 49% sun=3.0deg transition=60s
   > sun(6)
-    DEBUG skip: at or below target; light.x 50% target=50% sun=6.0deg
-  > sun(11)
-    INFO  set: dim 92%; light.x 46% sun=11.0deg transition=60s
-  > manual(60)
-  > sun(11.5)
-    INFO  keep: raised by hand; light.x 60% target=46% sun=11.5deg
+    INFO  set: dim 50%; light.x 39% sun=6.0deg transition=60s
+  > manual(45)
+  > sun(9)
+    INFO  keep: raised by hand; light.x 45% target=13% sun=9.0deg
   > sun(12.1)
     INFO  off: reached off_level; light.x sun=12.1deg off_level=12deg transition=300s
     INFO  end: reached off_level; until next start trigger

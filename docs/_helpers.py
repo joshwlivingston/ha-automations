@@ -97,7 +97,7 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
         if off is not None and sign * (x - off) >= 0:
             return 0
         if s.get("dim") and sign * (x - end) > 0:
-            return dimmed_at(progress(x, end, off), hi_b)
+            return dimmed_at(abs(x - end), hi_b)
         return brightness_at(progress(x, ramp, end), lo_b, hi_b)
 
     ys = [brightness(x) for x in xs]

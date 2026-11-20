@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from ha_automations.curves import ease_in, ease_out_quartic, lerp, progress
+from ha_automations.curves import decay_quartic, ease_in, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
 from ha_automations.store import Store
@@ -31,9 +31,9 @@ def brightness_at(p: float, lo: int, hi: int) -> int:
     return round(lerp(lo, hi, ease_in(p)))
 
 
-def dimmed_at(p: float, hi: int) -> int:
-    """Brightness at progress `p` of a dim from `hi`, before the light turns off at off_level."""
-    return round(lerp(0, hi, ease_out_quartic(p)))
+def dimmed_at(x: float, hi: int) -> int:
+    """Brightness of a dim from `hi`, `x` level units past to_level."""
+    return round(hi * decay_quartic(x))
 
 
 def brighten_only(light: Light, pct: int, transition: float = RAMP_TRANSITION) -> bool:
@@ -60,8 +60,8 @@ class LightFade:
     The fade runs in whichever direction from_level to to_level points, and
     ignores readings while the detector reports the opposite direction.
     Brightness goes from min_brightness to max_brightness, never lowered.
-    With `dim`, brightness then drops by DIM_DEPTH of max_brightness between
-    to_level and off_level, never raised. Once the level reaches off_level,
+    With `dim`, brightness then decays from max_brightness past to_level,
+    never raised. Once the level reaches off_level,
     if set, the light turns off. stop() turns it off at any time.
 
     Untriggered fades act whenever the level is between from_level and
@@ -89,7 +89,7 @@ class LightFade:
     off_transition: float = OFF_TRANSITION
     """Seconds the light takes to fade off."""
     dim: bool = False
-    """Dim slightly between to_level and off_level, most of it near off_level. Needs off_level."""
+    """Dim smoothly from max_brightness at to_level until off at off_level. Needs off_level."""
     triggered: bool = False
     """Wait for start() before acting."""
     log: Callable[[str], None] = _quiet
@@ -281,7 +281,7 @@ class LightFade:
         assert self.off_level is not None
         self._in_ramp = False
         p = progress(level, self.to_level, self.off_level)
-        pct = max(1, dimmed_at(p, self.max_brightness))
+        pct = max(1, dimmed_at(abs(level - self.to_level), self.max_brightness))
         now = self.light.brightness_pct()
         raised = self._set_pct is not None and now > self._set_pct + 1
         if 0 < now and pct < now and not raised:
