@@ -6,10 +6,10 @@
     skip resume: no saved fade
     skip: waiting for start trigger
   > SunsetFade living: {'light': 'light.y'}
-    load: init; light=light.y detector=sun from_level=12deg to_level=-6deg off_time="23:00:00" brightness=0%..100% start=none test_event=living_start
+    load: init; light=light.y detector=sun from_level=12deg to_level=0deg dim=on off_time="23:00:00" brightness=0%..100% start=none test_event=living_start
     skip: no sun reading
-  > SunsetFade living: {'light': 'light.y', 'off_time': None}
-    load: init; light=light.y detector=sun from_level=12deg to_level=-6deg brightness=0%..100% start=none test_event=living_start
+  > SunsetFade living: {'light': 'light.y', 'off_time': None, 'dim': False}
+    load: init; light=light.y detector=sun from_level=12deg to_level=0deg brightness=0%..100% start=none test_event=living_start
     skip: no sun reading
   > LightFadeApp desk: {'light': 'light.z', 'detector': {'kind': 'sun'}, 'from_level': 10, 'to_level': 20, 'start': [{'event': 'alarm'}, {'daily': '06:00:00'}]}
     load: init; light=light.z detector=sun from_level=10deg to_level=20deg brightness=0%..100% start="event alarm, daily at 06:00:00" test_event=desk_start

@@ -5,8 +5,9 @@ Levels are in the detector's units.
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Literal
 
-from ha_automations.curves import ease_in, lerp, progress
+from ha_automations.curves import clamp, decay, ease_in, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
 from ha_automations.store import Store
@@ -23,17 +24,20 @@ OFF_TRANSITION = 300
 """Default seconds the light takes to fade off."""
 END_MARGIN = 1
 """How far past to_level the fade keeps acting, to catch a missed final update."""
+RampCurve = Literal["decay", "ease_in"]
+"""Brightening curve: `decay` is the dim curve reversed, `ease_in` starts slowly."""
 RESTORE_MAX_AGE = 12 * 3600  # seconds; a fade started longer ago is not restored, so it never resumes the next day
 
 
-def brightness_at(p: float, lo: int, hi: int) -> int:
-    """Eased brightness between `lo` and `hi` at progress `p`."""
-    return round(lerp(lo, hi, ease_in(p)))
+def brightness_at(p: float, lo: int, hi: int, curve: RampCurve = "decay") -> int:
+    """Brightness between `lo` and `hi` at progress `p` on `curve`."""
+    t = ease_in(p) if curve == "ease_in" else decay(1 - p)
+    return round(lerp(lo, hi, t))
 
 
 def dimmed_at(p: float, hi: int) -> int:
-    """Brightness at progress `p` of a dim from `hi` to 0, the brightening curve reversed."""
-    return round(lerp(0, hi, ease_in(1 - p)))
+    """Brightness at progress `p` of a dim from `hi` to 0."""
+    return round(hi * decay(p))
 
 
 def brighten_only(light: Light, pct: int, transition: float = RAMP_TRANSITION) -> bool:
@@ -60,8 +64,9 @@ class LightFade:
     The fade runs in whichever direction from_level to to_level points, and
     ignores readings while the detector reports the opposite direction.
     Brightness goes from min_brightness to max_brightness, never lowered.
-    With `dim`, brightness then goes from max_brightness to 0 between
-    to_level and off_level, never raised. Once the level reaches off_level,
+    With `dim`, brightness then decays from max_brightness to 0 between
+    to_level and off_level, never raised. Without off_level, the dim runs by
+    clock time instead, from when the level passes to_level until `dim_end`. Once the level reaches off_level,
     if set, the light turns off. stop() turns it off at any time.
 
     Untriggered fades act whenever the level is between from_level and
@@ -88,8 +93,12 @@ class LightFade:
     """Brightness at to_level, percent."""
     off_transition: float = OFF_TRANSITION
     """Seconds the light takes to fade off."""
+    ramp_curve: RampCurve = "decay"
+    """Curve from min_brightness to max_brightness."""
     dim: bool = False
-    """Dim from max_brightness at to_level to off at off_level. Needs off_level."""
+    """Dim from max_brightness at to_level to off on the decay curve. Turned off without off_level or dim_end."""
+    dim_end: Callable[[float], float] | None = None
+    """Given the time the dim starts, the time it ends. Used when off_level is None."""
     triggered: bool = False
     """Wait for start() before acting."""
     log: Callable[[str], None] = _quiet
@@ -108,12 +117,15 @@ class LightFade:
     _in_ramp: bool = field(default=False, init=False, repr=False)
     # Brightness this fade last set, to tell a manual increase while dimming. None if unknown.
     _set_pct: int | None = field(default=None, init=False, repr=False)
+    # Time a clock dim started and the time it ends. None while not dimming by clock.
+    _dim_span: tuple[float, float] | None = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         if self.from_level == self.to_level:
             raise ValueError("from_level and to_level must differ")
-        if self.dim and self.off_level is None:
-            raise ValueError("dim needs off_level")
+        if self.dim and self.off_level is None and self.dim_end is None:
+            self.dim = False
+            self.log(line("skip dim", "no off_level or off_time", "the light holds max_brightness"))
         if not self.triggered:
             self.ramp_from = self.from_level
 
@@ -246,6 +258,7 @@ class LightFade:
             return True
         if self.dim and self._ahead(level, self.to_level):
             return self._dim(level, transition, noop)
+        self._dim_span = None
         end = self.to_level + (END_MARGIN if self.rising else -END_MARGIN)
         if self._ahead(self.ramp_from, level) or self._ahead(level, end):
             if not self._ahead(level, end):
@@ -261,7 +274,7 @@ class LightFade:
             return False
         self._in_ramp = True
         p = progress(level, self.ramp_from, self.to_level)
-        pct = brightness_at(p, self.min_brightness, self.max_brightness)
+        pct = brightness_at(p, self.min_brightness, self.max_brightness, self.ramp_curve)
         if brighten_only(self.light, pct, transition):
             self._kept = False
             self._set_pct = pct
@@ -278,9 +291,8 @@ class LightFade:
 
     def _dim(self, level: float, transition: float, noop: Callable[[str], None]) -> bool:
         """Lower the light toward its dim brightness at `level`. Leaves it off or raised by hand."""
-        assert self.off_level is not None
         self._in_ramp = False
-        p = progress(level, self.to_level, self.off_level)
+        p = self._dim_progress(level)
         pct = max(1, dimmed_at(p, self.max_brightness))
         now = self.light.brightness_pct()
         raised = self._set_pct is not None and now > self._set_pct + 1
@@ -298,3 +310,14 @@ class LightFade:
             reason = "off" if now == 0 else "at or below target"
             noop(line("skip", reason, f"{self.light} {now}% target={pct}% {self._at(level)}"))
         return True
+
+    def _dim_progress(self, level: float) -> float:
+        """How far the dim is, 0 to 1, by level with off_level, else by clock time."""
+        if self.off_level is not None:
+            return progress(level, self.to_level, self.off_level)
+        assert self.dim_end is not None
+        if self._dim_span is None:
+            start = self.now()
+            self._dim_span = (start, self.dim_end(start))
+        start, end = self._dim_span
+        return clamp((self.now() - start) / (end - start)) if end > start else 1.0

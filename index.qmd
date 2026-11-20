@@ -11,7 +11,7 @@ Automations for Home Assistant. Pick an app, add it to `apps.yaml`, push.
 | App | Module | Class | Does |
 |---|---|---|---|
 | [Sunrise Fade](docs/apps/sunrise-fade.qmd) | `sunrise_fade` | `SunriseFade` | Turns a light on dim before dawn, brightens it to sunrise, turns it off |
-| [Sunset Fade](docs/apps/sunset-fade.qmd) | `sunset_fade` | `SunsetFade` | Brightens a light as the sun sets, leaves it on |
+| [Sunset Fade](docs/apps/sunset-fade.qmd) | `sunset_fade` | `SunsetFade` | Brightens a light as the sun sets, dims it off by `off_time` |
 | [Light Fade](docs/apps/light-fade.qmd) | `light_fade` | `LightFadeApp` | Fades a light with your own levels, start times and direction |
 
 ## Guide

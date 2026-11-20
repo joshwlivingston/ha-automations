@@ -1,6 +1,7 @@
 import json
 import tempfile
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -44,9 +45,15 @@ def build(cls, args, app_name="test", config_dir=None, states=None):
         def listen_state(self, *a, **k):
             pass
 
+        def run_every(self, callback, start, interval):
+            self.every.append(interval)
+
+        def parse_datetime(self, time_str, aware=False, today=None):
+            return self.parsed
+
     app = Stub.__new__(Stub)
     app.args = args
-    app.daily, app.events, app.logs, app.services = [], [], [], []
+    app.daily, app.every, app.events, app.logs, app.services = [], [], [], [], []
     app.initialize()
     return app
 
@@ -55,6 +62,7 @@ def test_sunrise_defaults():
     app = build(SunriseFade, {"light": "light.x"}, app_name="bedroom_sunrise")
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered, f.dim) == (-6, 0, 12, True, True)
+    assert f.ramp_curve == "decay"
     assert app.daily == ["05:45:00"]
     assert app.events == ["bedroom_sunrise_start"]
 
@@ -63,16 +71,39 @@ def test_sunset_defaults():
     app = build(SunsetFade, {"light": "light.x", "to_level": -8})
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered) == (12, -8, None, False)
+    assert f.ramp_curve == "decay"
+    assert f.dim and f.dim_end is not None
+    assert app.every == [60]
     assert app.daily == ["23:00:00"]
 
 
-def test_dim_without_off_level_rejected():
-    with pytest.raises(ValueError, match="dim needs off_level"):
-        build(SunriseFade, {"light": "light.x", "off_level": None})
+def test_sunrise_dims_by_level_not_clock():
+    app = build(SunriseFade, {"light": "light.x"})
+    assert app.fade.dim_end is None
+    assert app.every == []
+
+
+def test_dim_without_an_end_is_turned_off():
+    for cls, args in ((SunsetFade, {"off_time": None}), (SunriseFade, {"off_level": None})):
+        app = build(cls, {"light": "light.x", **args})
+        assert not app.fade.dim
+        assert app.every == []
+        assert "skip dim: no off_level or off_time; the light holds max_brightness" in app.logs
+
+
+def test_dim_end_is_next_off_time():
+    t = datetime(2026, 11, 19, 17, 0, tzinfo=UTC).timestamp()
+    app = build(SunsetFade, {"light": "light.x", "off_time": "sunset + 02:00:00"})
+    end = app.fade.dim_end
+    assert end is not None
+    app.parsed = datetime(2026, 11, 19, 19, 0, tzinfo=UTC)
+    assert end(t) == t + 2 * 3600
+    app.parsed = datetime(2026, 11, 19, 16, 0, tzinfo=UTC)
+    assert end(t) == t + 23 * 3600
 
 
 def test_off_time_null_schedules_nothing():
-    app = build(SunsetFade, {"light": "light.x", "off_time": None})
+    app = build(SunsetFade, {"light": "light.x", "off_time": None, "dim": False})
     assert app.daily == []
 
 
@@ -128,7 +159,7 @@ def test_summary_lines(snapshot):
     cases = [
         (SunriseFade, {"light": "light.x"}, "bedroom_sunrise"),
         (SunsetFade, {"light": "light.y"}, "living"),
-        (SunsetFade, {"light": "light.y", "off_time": None}, "living"),
+        (SunsetFade, {"light": "light.y", "off_time": None, "dim": False}, "living"),
         (
             LightFadeApp,
             {

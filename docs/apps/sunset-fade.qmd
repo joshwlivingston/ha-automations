@@ -1,6 +1,6 @@
 ---
 title: Sunset Fade
-description: Brighten a light as the sun sets.
+description: Brighten a light as the sun sets, then dim it off by night.
 ---
 
 ```{python}
@@ -14,7 +14,7 @@ from ha_automations.apps import sunset_fade
 S = sunset_fade.SunsetSettings
 ```
 
-Brightens a light as the sun sets. Leaves it on.
+Brightens a light as the sun sets. Dims it after sunset, then turns it off at `off_time`.
 
 ## Use it
 
@@ -46,17 +46,18 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 |---|---|
 | Above `from_level` | Untouched |
 | Reaches `from_level` | Starts at `min_brightness` |
-| Between `from_level` and `to_level` | Brightens, slowly at first |
-| Reaches `to_level` | Reaches `max_brightness`. The app stops changing it. |
+| Between `from_level` and `to_level` | Brightens on the Sunrise Fade dim curve, reversed |
+| Reaches `to_level` | Reaches `max_brightness` |
 | Rising | Untouched |
 
 | Time | Light |
 |---|---|
+| From `to_level` until `off_time` | Dims by clock time on the same curve, reversed |
 | `off_time` | Fades off over `off_transition` seconds |
 
 ```{python}
 #| echo: false
-#| fig-cap: "Brightness against sun elevation, default settings. Time runs left to right."
+#| fig-cap: "Brightness against sun elevation, then clock time, default settings. Time runs left to right."
 h.fade_chart(S)
 ```
 
@@ -103,6 +104,16 @@ living_room_sunset:
   off_time: "00:00:00"
 ```
 
+**Stay at full brightness until `off_time`**
+
+```yaml
+living_room_sunset:
+  module: sunset_fade
+  class: SunsetFade
+  light: light.living_room_lamp
+  dim: false
+```
+
 **Leave on all night**
 
 ```yaml
@@ -139,11 +150,11 @@ hallway_sunset:
 | Dusk | Light updates |
 | Morning | Log: `skip: sun rising` |
 | Afternoon | Log: `skip: short of ramp_from` |
-| Night | Log: `skip: past to_level` |
+| Evening | Light dims |
 
 ## Notes
 
-- Restart during the fade: carries on at the next sun update.
+- Restart during the fade: carries on at the next sun update. A restart while dimming starts the dim again from that moment, holding the light until the curve falls below it.
 - With `off_level`: turning the light back on afterwards lasts only until the next sun update, until about midnight.
 - Manual changes: [Manual control](manual-control.qmd).
 - Problems: [Light app troubleshooting](light-troubleshooting.qmd).

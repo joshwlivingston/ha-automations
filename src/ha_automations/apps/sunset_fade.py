@@ -1,4 +1,4 @@
-"""Brighten a light as the sun sets and turn it off at night.
+"""Brighten a light as the sun sets, then dim it off by off_time.
 
 Usage
 -----
@@ -29,10 +29,12 @@ class SunsetSettings(LightFadeSettings):
     """Uses the sun's elevation."""
     from_level: float = 12
     """Well above the horizon. The light turns on."""
-    to_level: float = -6
-    """Civil dusk. The light reaches full brightness."""
+    to_level: float = 0
+    """Sunset. The light reaches full brightness."""
     off_time: str | None = "23:00:00"
     """Time the light turns off."""
+    dim: bool = True
+    """Dims from full brightness at to_level to off at off_time, by clock time."""
 
 
 class SunsetFade(LightFadeApp):

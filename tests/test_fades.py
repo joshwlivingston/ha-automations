@@ -6,6 +6,7 @@ from ha_automations.fades import (
     RESTORE_MAX_AGE,
     LightFade,
     brighten_only,
+    brightness_at,
     dimmed_at,
 )
 
@@ -136,10 +137,15 @@ def test_triggered_full_cycle():
     assert not fade.update()
 
 
-def test_dimmed_at_mirrors_brightening():
-    assert dimmed_at(0, HI) == HI
-    assert dimmed_at(1, HI) == 0
-    assert dimmed_at(0.5, 100) == 35  # drops fast at first, slowly at the end
+def test_dimmed_at_decays_smoothly():
+    assert dimmed_at(0, 100) == 100
+    assert dimmed_at(0.5, 100) == 77
+    assert dimmed_at(1, 100) == 0
+
+
+def test_decay_ramp_mirrors_dim():
+    for p in (0, 0.25, 0.5, 0.75, 1):
+        assert brightness_at(p, 0, 100, "decay") == dimmed_at(1 - p, 100)
 
 
 def dimming(det, light):
@@ -153,7 +159,7 @@ def test_dim_lowers_then_turns_off():
     assert light.pct == 100
     det.level = 6
     fade.update()
-    assert light.pct == 35
+    assert light.pct == 77
     det.level = 11.9
     fade.update()
     assert light.pct == 1
@@ -166,21 +172,44 @@ def test_dim_leaves_light_off_or_raised_by_hand():
     det, light = FakeDetector(0, True), FakeLight()
     fade = dimming(det, light)
     fade.update()
-    det.level = 3
+    det.level = 6
     fade.update()
     light.pct = 90
-    det.level = 6
+    det.level = 9
     fade.update()
     assert light.pct == 90
     light.pct = 0
-    det.level = 9
+    det.level = 11
     fade.update()
     assert light.pct == 0
 
 
-def test_dim_needs_off_level():
-    with pytest.raises(ValueError, match="dim needs off_level"):
-        LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True)
+def test_dim_by_clock_from_to_level_to_dim_end():
+    det, light = FakeDetector(1, False), FakeLight()
+    clock = [1000.0]
+    fade = LightFade(
+        det, light, from_level=12, to_level=0, dim=True, max_brightness=100,
+        ramp_curve="decay", dim_end=lambda t: t + 3600, now=lambda: clock[0],
+    )
+    fade.update()
+    assert light.pct == 100
+    det.level = -1
+    fade.update()
+    assert light.pct == 100
+    clock[0] += 1800
+    fade.update()
+    assert light.pct == 77
+    det.level = -10
+    clock[0] += 1800
+    fade.update()
+    assert light.pct == 1
+
+
+def test_dim_without_an_end_is_turned_off():
+    logs = []
+    fade = LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True, log=logs.append)
+    assert not fade.dim
+    assert logs == ["skip dim: no off_level or off_time; the light holds max_brightness"]
 
 
 def test_untriggered_off_level_turns_off_once():

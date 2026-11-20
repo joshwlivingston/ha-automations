@@ -1,4 +1,4 @@
-from ha_automations.curves import clamp, ease_in, lerp, progress
+from ha_automations.curves import clamp, decay, ease_in, lerp, progress
 
 
 def test_clamp_bounds():
@@ -37,3 +37,10 @@ def test_lerp():
     assert lerp(5, 50, 0) == 5
     assert lerp(5, 50, 1) == 50
     assert lerp(0, 10, 0.5) == 5
+
+
+def test_decay_endpoints_and_shape():
+    assert decay(0) == 1.0
+    assert decay(1) == 0.0
+    assert decay(0.25) > 0.95
+    assert decay(0.9) < 0.1

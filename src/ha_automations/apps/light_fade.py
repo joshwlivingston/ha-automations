@@ -38,7 +38,7 @@ from typing import ClassVar
 
 import appdaemon.plugins.hass.hassapi as hass
 from appdaemon.models.config.app import AppConfig
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from ha_automations.config import Config
 from ha_automations.detectors import DetectorConfig
@@ -46,7 +46,9 @@ from ha_automations.fades import (
     MAX_BRIGHTNESS,
     MIN_BRIGHTNESS,
     OFF_TRANSITION,
+    RAMP_TRANSITION,
     LightFade,
+    RampCurve,
     line,
 )
 from ha_automations.lights import HassLight
@@ -82,14 +84,10 @@ class LightFadeSettings(Config):
     """Brightness at to_level, percent."""
     off_transition: float = Field(OFF_TRANSITION, ge=0)
     """How long the light takes to fade off, seconds."""
+    ramp_curve: RampCurve = "decay"
+    """How the light brightens. `decay` is the dim curve reversed; `ease_in` starts slowly."""
     dim: bool = False
-    """Dim from max_brightness at to_level to off at off_level, slowly at the end. Needs off_level."""
-
-    @model_validator(mode="after")
-    def _dim_needs_off_level(self):
-        if self.dim and self.off_level is None:
-            raise ValueError("dim needs off_level")
-        return self
+    """Dim from max_brightness at to_level to off on the `decay` curve: to off_level if set, else by clock to off_time. Ignored without either."""
 
 
 class LightFadeApp(hass.Hass):
@@ -111,7 +109,9 @@ class LightFadeApp(hass.Hass):
             min_brightness=s.min_brightness,
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
+            ramp_curve=s.ramp_curve,
             dim=s.dim,
+            dim_end=self._dim_end(s),
             triggered=bool(s.start),
             store=JsonFile(self.config_dir / STATE_DIR / f"{self.name}.json"),
             log=self.log,
@@ -123,8 +123,22 @@ class LightFadeApp(hass.Hass):
         if s.off_time is not None:
             Daily(daily=s.off_time).listen(self, lambda: self.fade.stop("reached off_time"))
         self.fade.detector.listen(self.fade.update)
+        if self.fade.dim_end is not None:
+            self.run_every(lambda **kwargs: self.fade.update(), "now", RAMP_TRANSITION)
         self.log(self._summary(s))
         self.fade.restore()
+
+    def _dim_end(self, s: LightFadeSettings):
+        """For a dim by clock, a function giving the next off_time after a time. Else None."""
+        if not s.dim or s.off_level is not None or s.off_time is None:
+            return None
+        off_time = s.off_time
+
+        def next_off(t: float) -> float:
+            end = self.parse_datetime(off_time, aware=True, today=True).timestamp()
+            return end if end > t else end + 24 * 3600
+
+        return next_off
 
     def _summary(self, s: LightFadeSettings) -> str:
         """One line saying what this app controls and when it starts."""
@@ -137,7 +151,9 @@ class LightFadeApp(hass.Hass):
         ]
         if s.off_level is not None:
             fields.append(f"off_level={s.off_level:g}{u}")
-        if s.dim:
+        if s.ramp_curve != "decay":
+            fields.append(f"ramp_curve={s.ramp_curve}")
+        if self.fade.dim:
             fields.append("dim=on")
         if s.off_time is not None:
             fields.append(f'off_time="{s.off_time}"')

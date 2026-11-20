@@ -73,7 +73,8 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
     `overrides` replace defaults, for settings that have none. A triggered fade
     (non-empty `start`) ramps from the level when the trigger fired, which is
     short of from_level; `ramp_from` sets that example level. The x-axis runs
-    in the fade's direction, so time reads left to right.
+    in the fade's direction, so time reads left to right. A dim by clock time
+    (dim with off_time, no off_level) gets a second panel against time.
     """
     import matplotlib.pyplot as plt
 
@@ -85,8 +86,9 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
     if s["start"] and ramp_from is None:
         ramp_from = start - sign * span * 0.5
     ramp = start if ramp_from is None else ramp_from
+    clock = bool(s.get("dim")) and off is None and s.get("off_time") is not None
     last = off if off is not None else end
-    left, right = ramp - sign * span * 0.3, last + sign * span * 0.3
+    left, right = ramp - sign * span * 0.3, last + sign * span * (0.0 if clock else 0.3)
 
     steps = 400
     xs = [left + (right - left) * i / steps for i in range(steps + 1)]
@@ -98,11 +100,28 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
             return 0
         if s.get("dim") and sign * (x - end) > 0:
             return dimmed_at(progress(x, end, off), hi_b)
-        return brightness_at(progress(x, ramp, end), lo_b, hi_b)
+        return brightness_at(progress(x, ramp, end), lo_b, hi_b, s.get("ramp_curve", "decay"))
 
     ys = [brightness(x) for x in xs]
 
-    fig, ax = plt.subplots(figsize=(7, height))
+    if clock:
+        fig, (ax, tax) = plt.subplots(1, 2, figsize=(7, height), sharey=True, width_ratios=[3, 2])
+        fig.subplots_adjust(wspace=0.04)
+        ts = [i / steps * 1.2 for i in range(steps + 1)]
+        tys = [dimmed_at(t, hi_b) if t < 1 else 0 for t in ts]
+        tax.set_facecolor("none")
+        tax.fill_between(ts, tys, color=ACCENT, alpha=0.18, linewidth=0)
+        tax.plot(ts, tys, color=ACCENT, linewidth=2.2)
+        tax.axvline(1, ymax=1.05 / 1.35, color=MUTED, linestyle="--", linewidth=1)
+        tax.annotate(f"off_time\n{s['off_time']}", (1, hi_b * 1.08), ha="center", va="bottom", fontsize=8, color=MUTED)
+        tax.set_xlim(0, 1.2)
+        tax.set_xticks([])
+        tax.set_xlabel("clock time")
+        tax.spines["left"].set_visible(False)
+        tax.tick_params(left=False)
+        _style(tax)
+    else:
+        fig, ax = plt.subplots(figsize=(7, height))
     fig.patch.set_alpha(0)
     ax.set_facecolor("none")
     ax.fill_between(xs, ys, color=ACCENT, alpha=0.18, linewidth=0)
@@ -121,6 +140,14 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
     ax.set_ylim(0, hi_b * 1.35)
     ax.set_xlabel("sun elevation, degrees")
     ax.set_ylabel("brightness, %")
+    _style(ax)
+    if not clock:
+        fig.tight_layout()
+    plt.show()
+
+
+def _style(ax) -> None:
+    """Muted axes with no top or right spine."""
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
     for item in (ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *ax.get_yticklabels()):
@@ -128,5 +155,3 @@ def fade_chart(cls: type[LightFadeSettings], *, height: float = 3.0, ramp_from: 
     for spine in ("left", "bottom"):
         ax.spines[spine].set_color(MUTED)
     ax.tick_params(colors=MUTED)
-    fig.tight_layout()
-    plt.show()
