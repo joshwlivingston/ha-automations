@@ -1,12 +1,14 @@
 import json
 import tempfile
 import time
+from datetime import UTC, datetime
+from datetime import time as clock
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from ha_automations.apps.light_fade import STATE_DIR, LightFadeApp
+from ha_automations.apps.light_fade import STATE_DIR, LightFadeApp, next_time_of_day
 from ha_automations.apps.sunrise_fade import SunriseFade
 from ha_automations.apps.sunset_fade import SunsetFade
 
@@ -44,9 +46,15 @@ def build(cls, args, app_name="test", config_dir=None, states=None):
         def listen_state(self, *a, **k):
             pass
 
+        def run_every(self, callback, start, interval):
+            self.every.append(interval)
+
+        def get_timezone(self):
+            return UTC
+
     app = Stub.__new__(Stub)
     app.args = args
-    app.daily, app.events, app.logs, app.services = [], [], [], []
+    app.daily, app.every, app.events, app.logs, app.services = [], [], [], [], []
     app.initialize()
     return app
 
@@ -64,7 +72,29 @@ def test_sunset_defaults():
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered) == (12, -8, None, False)
     assert f.ramp_curve == "decay"
+    assert f.dim and f.dim_end is not None
+    assert app.every == [60]
     assert app.daily == ["23:00:00"]
+
+
+def test_sunrise_dims_by_level_not_clock():
+    app = build(SunriseFade, {"light": "light.x"})
+    assert app.fade.dim_end is None
+    assert app.every == []
+
+
+def test_dim_without_off_level_needs_clock_off_time():
+    with pytest.raises(ValueError, match="dim needs off_level or off_time"):
+        build(SunsetFade, {"light": "light.x", "off_time": None})
+    with pytest.raises(ValueError, match="clock time"):
+        build(SunsetFade, {"light": "light.x", "off_time": "sunset + 02:00:00"})
+
+
+def test_next_time_of_day():
+    t = datetime(2026, 11, 19, 17, 0, tzinfo=UTC).timestamp()
+    at = clock(23)
+    assert next_time_of_day(t, at, UTC) == t + 6 * 3600
+    assert next_time_of_day(t + 7 * 3600, at, UTC) == t + 30 * 3600
 
 
 def test_dim_without_off_level_rejected():
@@ -73,7 +103,7 @@ def test_dim_without_off_level_rejected():
 
 
 def test_off_time_null_schedules_nothing():
-    app = build(SunsetFade, {"light": "light.x", "off_time": None})
+    app = build(SunsetFade, {"light": "light.x", "off_time": None, "dim": False})
     assert app.daily == []
 
 
@@ -129,7 +159,7 @@ def test_summary_lines(snapshot):
     cases = [
         (SunriseFade, {"light": "light.x"}, "bedroom_sunrise"),
         (SunsetFade, {"light": "light.y"}, "living"),
-        (SunsetFade, {"light": "light.y", "off_time": None}, "living"),
+        (SunsetFade, {"light": "light.y", "off_time": None, "dim": False}, "living"),
         (
             LightFadeApp,
             {

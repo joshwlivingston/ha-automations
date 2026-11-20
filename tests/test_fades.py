@@ -184,6 +184,27 @@ def test_dim_leaves_light_off_or_raised_by_hand():
     assert light.pct == 0
 
 
+def test_dim_by_clock_from_to_level_to_dim_end():
+    det, light = FakeDetector(1, False), FakeLight()
+    clock = [1000.0]
+    fade = LightFade(
+        det, light, from_level=12, to_level=0, dim=True, max_brightness=100,
+        ramp_curve="decay", dim_end=lambda t: t + 3600, now=lambda: clock[0],
+    )
+    fade.update()
+    assert light.pct == 100
+    det.level = -1
+    fade.update()
+    assert light.pct == 100
+    clock[0] += 1800
+    fade.update()
+    assert light.pct == 77
+    det.level = -10
+    clock[0] += 1800
+    fade.update()
+    assert light.pct == 1
+
+
 def test_dim_needs_off_level():
     with pytest.raises(ValueError, match="dim needs off_level"):
         LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True)

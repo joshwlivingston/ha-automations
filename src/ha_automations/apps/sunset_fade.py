@@ -1,4 +1,4 @@
-"""Brighten a light as the sun sets and turn it off at night.
+"""Brighten a light as the sun sets, then dim it off by off_time.
 
 Usage
 -----
@@ -36,6 +36,8 @@ class SunsetSettings(LightFadeSettings):
     """The Sunrise Fade dim curve reversed."""
     off_time: str | None = "23:00:00"
     """Time the light turns off."""
+    dim: bool = True
+    """Dims from full brightness at to_level to off at off_time, by clock time."""
 
 
 class SunsetFade(LightFadeApp):

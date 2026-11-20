@@ -37,7 +37,7 @@ class SunriseSettings(LightFadeSettings):
     off_level: float | None = 12
     """Well after sunrise. The light has dimmed and turns off."""
     dim: bool = True
-    """Dims smoothly from full brightness at to_level until off at off_level."""
+    """Dims from full brightness at to_level to off at off_level."""
 
 
 class SunriseFade(LightFadeApp):
