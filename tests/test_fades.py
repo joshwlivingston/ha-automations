@@ -19,15 +19,19 @@ class FakeDetector:
     label = "sun"
     unit = "deg"
 
-    def __init__(self, level=None, rising=None):
+    def __init__(self, level=None, rising=None, passed=None):
         self.level = level
         self.rising = rising
+        self.passed = passed
 
     def read(self):
         return Reading(self.level, self.rising)
 
     def listen(self, callback):
         pass
+
+    def passed_at(self, level, rising):
+        return self.passed
 
 
 class FakeLight:
@@ -203,6 +207,27 @@ def test_dim_by_clock_from_to_level_to_dim_end():
     clock[0] += 1800
     fade.update()
     assert light.pct == 1
+
+
+def test_dim_by_clock_carries_on_after_restart():
+    det, light = FakeDetector(-20, False, passed=1000.0), FakeLight(100)
+    fade = LightFade(
+        det, light, from_level=12, to_level=0, dim=True, max_brightness=100,
+        dim_end=lambda t: t + 3600, now=lambda: 2800.0,
+    )
+    fade.restore()
+    assert light.pct == 77
+
+
+def test_dim_by_clock_starts_now_if_crossing_unknown_or_ahead():
+    for passed in (None, 5000.0):
+        light = FakeLight(100)
+        fade = LightFade(
+            FakeDetector(-20, False, passed=passed), light, from_level=12, to_level=0, dim=True,
+            max_brightness=100, dim_end=lambda t: t + 3600, now=lambda: 2800.0,
+        )
+        fade.update()
+        assert light.pct == 100
 
 
 def test_dim_without_an_end_is_turned_off():

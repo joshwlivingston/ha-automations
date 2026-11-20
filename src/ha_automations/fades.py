@@ -312,12 +312,18 @@ class LightFade:
         return True
 
     def _dim_progress(self, level: float) -> float:
-        """How far the dim is, 0 to 1, by level with off_level, else by clock time."""
+        """How far the dim is, 0 to 1, by level with off_level, else by clock time.
+
+        A dim by clock starts when the level passed to_level, so it carries on after a restart.
+        """
         if self.off_level is not None:
             return progress(level, self.to_level, self.off_level)
         assert self.dim_end is not None
         if self._dim_span is None:
-            start = self.now()
+            now = self.now()
+            start = self.detector.passed_at(self.to_level, self.rising)
+            if start is None or start > now:
+                start = now
             self._dim_span = (start, self.dim_end(start))
         start, end = self._dim_span
         return clamp((self.now() - start) / (end - start)) if end > start else 1.0

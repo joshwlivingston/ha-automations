@@ -27,3 +27,7 @@ class Detector(Protocol):
     def listen(self, callback: Callable[[], object]) -> None:
         """Call `callback` whenever the level may have changed."""
         ...
+
+    def passed_at(self, level: float, rising: bool) -> float | None:
+        """Last time, in seconds, the level passed `level` going up if `rising`, else down. None if unknown."""
+        ...
