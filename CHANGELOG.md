@@ -7,7 +7,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 ### New features
 
 - `dim` dims a light app's light smoothly from `max_brightness` at `to_level` to off at `off_level`, or by clock time to `off_time` without one. Sunrise Fade and Sunset Fade dim by default; set `dim: false` to hold full brightness (#31, #34).
-- `ramp_curve` picks how a light app's light brightens: `ease_in` starts slowly, `decay` is the `dim` curve reversed. Sunset Fade uses `decay` (#34).
+- `ramp_curve` picks how a light app's light brightens: `decay`, the default, is the `dim` curve reversed; `ease_in` starts slowly (#34).
 
 ### Bugfixes
 

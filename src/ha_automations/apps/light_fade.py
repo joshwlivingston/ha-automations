@@ -84,8 +84,8 @@ class LightFadeSettings(Config):
     """Brightness at to_level, percent."""
     off_transition: float = Field(OFF_TRANSITION, ge=0)
     """How long the light takes to fade off, seconds."""
-    ramp_curve: RampCurve = "ease_in"
-    """How the light brightens. `ease_in` starts slowly; `decay` is the dim curve reversed."""
+    ramp_curve: RampCurve = "decay"
+    """How the light brightens. `decay` is the dim curve reversed; `ease_in` starts slowly."""
     dim: bool = False
     """Dim from max_brightness at to_level to off on the `decay` curve: to off_level if set, else by clock to off_time. Ignored without either."""
 
@@ -151,7 +151,7 @@ class LightFadeApp(hass.Hass):
         ]
         if s.off_level is not None:
             fields.append(f"off_level={s.off_level:g}{u}")
-        if s.ramp_curve != "ease_in":
+        if s.ramp_curve != "decay":
             fields.append(f"ramp_curve={s.ramp_curve}")
         if self.fade.dim:
             fields.append("dim=on")

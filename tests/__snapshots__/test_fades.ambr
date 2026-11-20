@@ -22,7 +22,7 @@
   '''
   > restore()
     INFO  resume: started before restart; ramp_from=-10deg
-    INFO  set: ramp 70%; light.x 31% sun=-3.0deg transition=60s
+    INFO  set: ramp 70%; light.x 49% sun=-3.0deg transition=60s
   > sun(4.2)
     INFO  off: reached off_level; light.x sun=4.2deg off_level=4deg transition=300s
     INFO  end: reached off_level; until next start trigger
@@ -61,14 +61,14 @@
     INFO  start: short of from_level; sun=-12.0deg to_level=0deg off_level=4deg
     INFO  set: ramp 0%; light.x 5% sun=-12.0deg transition=5s
   > sun(-8)
-    INFO  set: ramp 33%; light.x 14% sun=-8.0deg transition=60s
+    INFO  set: ramp 33%; light.x 25% sun=-8.0deg transition=60s
   > sun(-4)
-    INFO  set: ramp 67%; light.x 29% sun=-4.0deg transition=60s
+    INFO  set: ramp 67%; light.x 48% sun=-4.0deg transition=60s
   > manual(80)
   > sun(-3.9)
-    INFO  keep: above target; light.x 80% target=30% sun=-3.9deg
+    INFO  keep: above target; light.x 80% target=48% sun=-3.9deg
   > sun(-2)
-    DEBUG skip: at or above target; light.x 80% target=39% sun=-2.0deg
+    DEBUG skip: at or above target; light.x 80% target=50% sun=-2.0deg
   > sun(0)
     DEBUG skip: at or above target; light.x 80% target=50% sun=0.0deg
   > sun(0.5)
@@ -106,7 +106,7 @@
   > sun(6)
     INFO  set: ramp 0%; light.x 5% sun=6.0deg transition=60s
   > sun(0)
-    INFO  set: ramp 50%; light.x 21% sun=0.0deg transition=60s
+    INFO  set: ramp 50%; light.x 40% sun=0.0deg transition=60s
   > sun(-6)
     INFO  set: ramp 100%; light.x 50% sun=-6.0deg transition=60s
   > sun(-6.5)

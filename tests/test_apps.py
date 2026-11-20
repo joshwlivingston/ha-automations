@@ -62,6 +62,7 @@ def test_sunrise_defaults():
     app = build(SunriseFade, {"light": "light.x"}, app_name="bedroom_sunrise")
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered, f.dim) == (-6, 0, 12, True, True)
+    assert f.ramp_curve == "decay"
     assert app.daily == ["05:45:00"]
     assert app.events == ["bedroom_sunrise_start"]
 

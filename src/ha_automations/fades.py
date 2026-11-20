@@ -24,12 +24,12 @@ OFF_TRANSITION = 300
 """Default seconds the light takes to fade off."""
 END_MARGIN = 1
 """How far past to_level the fade keeps acting, to catch a missed final update."""
-RampCurve = Literal["ease_in", "decay"]
-"""Brightening curve: `ease_in` starts slowly, `decay` is the dim curve reversed."""
+RampCurve = Literal["decay", "ease_in"]
+"""Brightening curve: `decay` is the dim curve reversed, `ease_in` starts slowly."""
 RESTORE_MAX_AGE = 12 * 3600  # seconds; a fade started longer ago is not restored, so it never resumes the next day
 
 
-def brightness_at(p: float, lo: int, hi: int, curve: RampCurve = "ease_in") -> int:
+def brightness_at(p: float, lo: int, hi: int, curve: RampCurve = "decay") -> int:
     """Brightness between `lo` and `hi` at progress `p` on `curve`."""
     t = ease_in(p) if curve == "ease_in" else decay(1 - p)
     return round(lerp(lo, hi, t))
@@ -93,7 +93,7 @@ class LightFade:
     """Brightness at to_level, percent."""
     off_transition: float = OFF_TRANSITION
     """Seconds the light takes to fade off."""
-    ramp_curve: RampCurve = "ease_in"
+    ramp_curve: RampCurve = "decay"
     """Curve from min_brightness to max_brightness."""
     dim: bool = False
     """Dim from max_brightness at to_level to off on the decay curve. Turned off without off_level or dim_end."""
