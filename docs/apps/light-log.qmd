@@ -12,7 +12,7 @@ INFO bedroom_sunrise: start: short of from_level; sun=-9.8deg to_level=0deg off_
 INFO bedroom_sunrise: set: ramp 0%; light.bedroom_lamp 5% sun=-9.8deg transition=5s
 INFO bedroom_sunrise: set: ramp 70%; light.bedroom_lamp 31% sun=-3.0deg transition=60s
 INFO bedroom_sunrise: set: ramp 100%; light.bedroom_lamp 100% sun=0.0deg transition=60s
-INFO bedroom_sunrise: set: dim 50%; light.bedroom_lamp 35% sun=6.0deg transition=60s
+INFO bedroom_sunrise: set: dim 50%; light.bedroom_lamp 99% sun=6.0deg transition=60s
 INFO bedroom_sunrise: off: reached off_level; light.bedroom_lamp sun=12.0deg off_level=12deg transition=300s
 INFO bedroom_sunrise: end: reached off_level; until next start trigger
 ```

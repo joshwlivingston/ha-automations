@@ -1,8 +1,7 @@
 """Easing and interpolation math. No Home Assistant imports."""
-import math
 
-LOG_OFFSET = 0.4
-"""Offset that keeps ease_out_log finite at 0. Gives it the same average as ease_in reversed."""
+DIM_DEPTH = 0.1
+"""Share of brightness ease_out_quartic removes by p = 1."""
 
 
 def clamp(x, lo=0.0, hi=1.0):
@@ -20,9 +19,9 @@ def ease_in(p, k=1.5):
     return p ** k
 
 
-def ease_out_log(p, eps=LOG_OFFSET):
-    """-log(p) scaled from 1 at p = 0 to 0 at p = 1. Falls fast early and slowly at the end."""
-    return math.log((p + eps) / (1 + eps)) / math.log(eps / (1 + eps))
+def ease_out_quartic(p, d=DIM_DEPTH):
+    """1 - d * p**4. Holds near 1, then falls to 1 - d at p = 1."""
+    return 1 - d * p ** 4
 
 
 def lerp(a, b, t):
