@@ -205,9 +205,11 @@ def test_dim_by_clock_from_to_level_to_dim_end():
     assert light.pct == 1
 
 
-def test_dim_needs_off_level():
-    with pytest.raises(ValueError, match="dim needs off_level"):
-        LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True)
+def test_dim_without_an_end_is_turned_off():
+    logs = []
+    fade = LightFade(FakeDetector(), FakeLight(), from_level=-6, to_level=0, dim=True, log=logs.append)
+    assert not fade.dim
+    assert logs == ["skip dim: no off_level or off_time; the light holds max_brightness"]
 
 
 def test_untriggered_off_level_turns_off_once():

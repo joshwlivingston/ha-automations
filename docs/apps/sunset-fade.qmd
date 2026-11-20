@@ -121,7 +121,6 @@ living_room_sunset:
   module: sunset_fade
   class: SunsetFade
   light: light.living_room_lamp
-  dim: false
   off_time: null
 ```
 

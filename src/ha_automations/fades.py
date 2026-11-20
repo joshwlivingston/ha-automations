@@ -96,7 +96,7 @@ class LightFade:
     ramp_curve: RampCurve = "ease_in"
     """Curve from min_brightness to max_brightness."""
     dim: bool = False
-    """Dim from max_brightness at to_level to off on the decay curve. Needs off_level or dim_end."""
+    """Dim from max_brightness at to_level to off on the decay curve. Turned off without off_level or dim_end."""
     dim_end: Callable[[float], float] | None = None
     """Given the time the dim starts, the time it ends. Used when off_level is None."""
     triggered: bool = False
@@ -124,7 +124,8 @@ class LightFade:
         if self.from_level == self.to_level:
             raise ValueError("from_level and to_level must differ")
         if self.dim and self.off_level is None and self.dim_end is None:
-            raise ValueError("dim needs off_level or dim_end")
+            self.dim = False
+            self.log(line("skip dim", "no off_level or off_time", "the light holds max_brightness"))
         if not self.triggered:
             self.ramp_from = self.from_level
 

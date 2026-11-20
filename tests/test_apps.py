@@ -2,13 +2,12 @@ import json
 import tempfile
 import time
 from datetime import UTC, datetime
-from datetime import time as clock
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from ha_automations.apps.light_fade import STATE_DIR, LightFadeApp, next_time_of_day
+from ha_automations.apps.light_fade import STATE_DIR, LightFadeApp
 from ha_automations.apps.sunrise_fade import SunriseFade
 from ha_automations.apps.sunset_fade import SunsetFade
 
@@ -49,8 +48,8 @@ def build(cls, args, app_name="test", config_dir=None, states=None):
         def run_every(self, callback, start, interval):
             self.every.append(interval)
 
-        def get_timezone(self):
-            return UTC
+        def parse_datetime(self, time_str, aware=False, today=None):
+            return self.parsed
 
     app = Stub.__new__(Stub)
     app.args = args
@@ -83,23 +82,23 @@ def test_sunrise_dims_by_level_not_clock():
     assert app.every == []
 
 
-def test_dim_without_off_level_needs_clock_off_time():
-    with pytest.raises(ValueError, match="dim needs off_level or off_time"):
-        build(SunsetFade, {"light": "light.x", "off_time": None})
-    with pytest.raises(ValueError, match="clock time"):
-        build(SunsetFade, {"light": "light.x", "off_time": "sunset + 02:00:00"})
+def test_dim_without_an_end_is_turned_off():
+    for cls, args in ((SunsetFade, {"off_time": None}), (SunriseFade, {"off_level": None})):
+        app = build(cls, {"light": "light.x", **args})
+        assert not app.fade.dim
+        assert app.every == []
+        assert "skip dim: no off_level or off_time; the light holds max_brightness" in app.logs
 
 
-def test_next_time_of_day():
+def test_dim_end_is_next_off_time():
     t = datetime(2026, 11, 19, 17, 0, tzinfo=UTC).timestamp()
-    at = clock(23)
-    assert next_time_of_day(t, at, UTC) == t + 6 * 3600
-    assert next_time_of_day(t + 7 * 3600, at, UTC) == t + 30 * 3600
-
-
-def test_dim_without_off_level_rejected():
-    with pytest.raises(ValueError, match="dim needs off_level"):
-        build(SunriseFade, {"light": "light.x", "off_level": None})
+    app = build(SunsetFade, {"light": "light.x", "off_time": "sunset + 02:00:00"})
+    end = app.fade.dim_end
+    assert end is not None
+    app.parsed = datetime(2026, 11, 19, 19, 0, tzinfo=UTC)
+    assert end(t) == t + 2 * 3600
+    app.parsed = datetime(2026, 11, 19, 16, 0, tzinfo=UTC)
+    assert end(t) == t + 23 * 3600
 
 
 def test_off_time_null_schedules_nothing():

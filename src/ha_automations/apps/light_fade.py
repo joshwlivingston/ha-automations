@@ -34,12 +34,11 @@ Testing
 Developer tools > Events, Event type `<app name>` plus EVENT_SUFFIX > Fire event.
 This runs the same check as a start trigger.
 """
-from datetime import datetime, time, timedelta, tzinfo
 from typing import ClassVar
 
 import appdaemon.plugins.hass.hassapi as hass
 from appdaemon.models.config.app import AppConfig
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from ha_automations.config import Config
 from ha_automations.detectors import DetectorConfig
@@ -60,15 +59,6 @@ from ha_automations.triggers import Daily, Event, Trigger, TriggerConfig
 APPDAEMON_KEYS = frozenset(f.alias or name for name, f in AppConfig.model_fields.items())
 EVENT_SUFFIX = "_start"
 STATE_DIR = "ha_automations_state"  # in AppDaemon's config directory, outside apps/, which deploys replace
-
-
-def next_time_of_day(t: float, at: time, tz: tzinfo) -> float:
-    """The first time after timestamp `t` that the clock in `tz` reads `at`."""
-    now = datetime.fromtimestamp(t, tz)
-    nxt = datetime.combine(now.date(), at, tz)
-    if nxt <= now:
-        nxt = datetime.combine(now.date() + timedelta(days=1), at, tz)
-    return nxt.timestamp()
 
 
 class LightFadeSettings(Config):
@@ -97,18 +87,7 @@ class LightFadeSettings(Config):
     ramp_curve: RampCurve = "ease_in"
     """How the light brightens. `ease_in` starts slowly; `decay` is the dim curve reversed."""
     dim: bool = False
-    """Dim from max_brightness at to_level to off on the `decay` curve: to off_level if set, else by clock to off_time."""
-
-    @model_validator(mode="after")
-    def _dim_needs_an_end(self):
-        if self.dim and self.off_level is None:
-            if self.off_time is None:
-                raise ValueError("dim needs off_level or off_time")
-            try:
-                time.fromisoformat(self.off_time)
-            except ValueError:
-                raise ValueError("dim without off_level needs off_time as a clock time, e.g. 23:00:00") from None
-        return self
+    """Dim from max_brightness at to_level to off on the `decay` curve: to off_level if set, else by clock to off_time. Ignored without either."""
 
 
 class LightFadeApp(hass.Hass):
@@ -153,8 +132,13 @@ class LightFadeApp(hass.Hass):
         """For a dim by clock, a function giving the next off_time after a time. Else None."""
         if not s.dim or s.off_level is not None or s.off_time is None:
             return None
-        at, tz = time.fromisoformat(s.off_time), self.get_timezone()
-        return lambda t: next_time_of_day(t, at, tz)
+        off_time = s.off_time
+
+        def next_off(t: float) -> float:
+            end = self.parse_datetime(off_time, aware=True, today=True).timestamp()
+            return end if end > t else end + 24 * 3600
+
+        return next_off
 
     def _summary(self, s: LightFadeSettings) -> str:
         """One line saying what this app controls and when it starts."""
@@ -169,7 +153,7 @@ class LightFadeApp(hass.Hass):
             fields.append(f"off_level={s.off_level:g}{u}")
         if s.ramp_curve != "ease_in":
             fields.append(f"ramp_curve={s.ramp_curve}")
-        if s.dim:
+        if self.fade.dim:
             fields.append("dim=on")
         if s.off_time is not None:
             fields.append(f'off_time="{s.off_time}"')
