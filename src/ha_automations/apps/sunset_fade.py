@@ -20,6 +20,7 @@ from typing import ClassVar
 
 from ha_automations.apps.light_fade import LightFadeApp, LightFadeSettings
 from ha_automations.detectors import Sun
+from ha_automations.fades import RampCurve
 
 
 class SunsetSettings(LightFadeSettings):
@@ -29,8 +30,10 @@ class SunsetSettings(LightFadeSettings):
     """Uses the sun's elevation."""
     from_level: float = 12
     """Well above the horizon. The light turns on."""
-    to_level: float = -6
-    """Civil dusk. The light reaches full brightness."""
+    to_level: float = 0
+    """Sunset. The light reaches full brightness."""
+    ramp_curve: RampCurve = "decay"
+    """The Sunrise Fade dim curve reversed."""
     off_time: str | None = "23:00:00"
     """Time the light turns off."""
 

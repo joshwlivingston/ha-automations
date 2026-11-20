@@ -6,6 +6,7 @@ from ha_automations.fades import (
     RESTORE_MAX_AGE,
     LightFade,
     brighten_only,
+    brightness_at,
     dimmed_at,
 )
 
@@ -138,8 +139,13 @@ def test_triggered_full_cycle():
 
 def test_dimmed_at_decays_smoothly():
     assert dimmed_at(0, 100) == 100
-    assert dimmed_at(6, 100) == 77
-    assert dimmed_at(12, 100) == 2
+    assert dimmed_at(0.5, 100) == 77
+    assert dimmed_at(1, 100) == 0
+
+
+def test_decay_ramp_mirrors_dim():
+    for p in (0, 0.25, 0.5, 0.75, 1):
+        assert brightness_at(p, 0, 100, "decay") == dimmed_at(1 - p, 100)
 
 
 def dimming(det, light):
@@ -156,7 +162,7 @@ def test_dim_lowers_then_turns_off():
     assert light.pct == 77
     det.level = 11.9
     fade.update()
-    assert light.pct == 2
+    assert light.pct == 1
     det.level = 12
     fade.update()
     assert light.calls[-1] == ("off", fade.off_transition)

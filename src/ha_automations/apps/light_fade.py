@@ -47,6 +47,7 @@ from ha_automations.fades import (
     MIN_BRIGHTNESS,
     OFF_TRANSITION,
     LightFade,
+    RampCurve,
     line,
 )
 from ha_automations.lights import HassLight
@@ -82,8 +83,10 @@ class LightFadeSettings(Config):
     """Brightness at to_level, percent."""
     off_transition: float = Field(OFF_TRANSITION, ge=0)
     """How long the light takes to fade off, seconds."""
+    ramp_curve: RampCurve = "ease_in"
+    """How the light brightens. `ease_in` starts slowly; `decay` is the dim curve reversed."""
     dim: bool = False
-    """Dim smoothly from max_brightness at to_level until off at off_level. Needs off_level."""
+    """Dim from max_brightness at to_level to off at off_level, on the `decay` curve. Needs off_level."""
 
     @model_validator(mode="after")
     def _dim_needs_off_level(self):
@@ -111,6 +114,7 @@ class LightFadeApp(hass.Hass):
             min_brightness=s.min_brightness,
             max_brightness=s.max_brightness,
             off_transition=s.off_transition,
+            ramp_curve=s.ramp_curve,
             dim=s.dim,
             triggered=bool(s.start),
             store=JsonFile(self.config_dir / STATE_DIR / f"{self.name}.json"),
@@ -137,6 +141,8 @@ class LightFadeApp(hass.Hass):
         ]
         if s.off_level is not None:
             fields.append(f"off_level={s.off_level:g}{u}")
+        if s.ramp_curve != "ease_in":
+            fields.append(f"ramp_curve={s.ramp_curve}")
         if s.dim:
             fields.append("dim=on")
         if s.off_time is not None:

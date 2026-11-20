@@ -46,7 +46,7 @@ Levels: sun elevation in degrees. See [Sun levels](sun-levels.qmd).
 |---|---|
 | Above `from_level` | Untouched |
 | Reaches `from_level` | Starts at `min_brightness` |
-| Between `from_level` and `to_level` | Brightens, slowly at first |
+| Between `from_level` and `to_level` | Brightens on the Sunrise Fade dim curve, reversed |
 | Reaches `to_level` | Reaches `max_brightness`. The app stops changing it. |
 | Rising | Untouched |
 

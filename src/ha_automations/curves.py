@@ -1,8 +1,8 @@
 """Easing and interpolation math. No Home Assistant imports."""
 import math
 
-DIM_RATE = 0.0002
-"""How fast decay_quartic falls. Larger dims sooner."""
+DECAY = 4
+"""Steepness of decay. Larger falls sooner."""
 
 
 def clamp(x, lo=0.0, hi=1.0):
@@ -20,9 +20,10 @@ def ease_in(p, k=1.5):
     return p ** k
 
 
-def decay_quartic(x, d=DIM_RATE):
-    """exp(-d * x**4). 1 at x = 0, falls smoothly toward 0."""
-    return math.exp(-d * x ** 4)
+def decay(p, k=DECAY):
+    """exp(-k * p**4), scaled to 1 at p = 0 and 0 at p = 1. Holds, falls, then levels off."""
+    floor = math.exp(-k)
+    return (math.exp(-k * p ** 4) - floor) / (1 - floor)
 
 
 def lerp(a, b, t):

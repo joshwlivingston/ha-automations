@@ -63,6 +63,7 @@ def test_sunset_defaults():
     app = build(SunsetFade, {"light": "light.x", "to_level": -8})
     f = app.fade
     assert (f.from_level, f.to_level, f.off_level, f.triggered) == (12, -8, None, False)
+    assert f.ramp_curve == "decay"
     assert app.daily == ["23:00:00"]
 
 
