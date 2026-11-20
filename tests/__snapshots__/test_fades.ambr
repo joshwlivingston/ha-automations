@@ -42,12 +42,12 @@
   > sun(0)
     INFO  set: ramp 100%; light.x 50% sun=0.0deg transition=60s
   > sun(3)
-    INFO  set: dim 25%; light.x 32% sun=3.0deg transition=60s
+    INFO  set: dim 25%; light.x 31% sun=3.0deg transition=60s
   > sun(6)
     INFO  set: dim 50%; light.x 18% sun=6.0deg transition=60s
   > manual(45)
   > sun(9)
-    INFO  keep: raised by hand; light.x 45% target=6% sun=9.0deg
+    INFO  keep: raised by hand; light.x 45% target=8% sun=9.0deg
   > sun(12.1)
     INFO  off: reached off_level; light.x sun=12.1deg off_level=12deg transition=300s
     INFO  end: reached off_level; until next start trigger

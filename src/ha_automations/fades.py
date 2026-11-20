@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from ha_automations.curves import ease_in, lerp, progress
+from ha_automations.curves import ease_in, ease_out_log, lerp, progress
 from ha_automations.detectors import Detector
 from ha_automations.lights import Light
 from ha_automations.store import Store
@@ -32,8 +32,8 @@ def brightness_at(p: float, lo: int, hi: int) -> int:
 
 
 def dimmed_at(p: float, hi: int) -> int:
-    """Brightness at progress `p` of a dim from `hi` to 0, the brightening curve reversed."""
-    return round(lerp(0, hi, ease_in(1 - p)))
+    """Brightness at progress `p` of a dim from `hi` to 0, on a -log curve."""
+    return round(lerp(0, hi, ease_out_log(p)))
 
 
 def brighten_only(light: Light, pct: int, transition: float = RAMP_TRANSITION) -> bool:

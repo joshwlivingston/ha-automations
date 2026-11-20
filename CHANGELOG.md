@@ -6,7 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Each release s
 
 ### New features
 
-- `dim` dims a light app's light from `max_brightness` at `to_level` to off at `off_level`, the brightening curve reversed. Sunrise Fade dims by default; set `dim: false` to hold full brightness (#31).
+- `dim` dims a light app's light from `max_brightness` at `to_level` to off at `off_level`, fast at first and slowly at the end. Sunrise Fade dims by default; set `dim: false` to hold full brightness (#31).
 
 ### Bugfixes
 
